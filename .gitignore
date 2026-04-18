@@ -1,0 +1,7 @@
+backend/venv/
+backend/.env
+backend/__pycache__/
+backend/langgraph_checkpoints.sqlite
+backend/expediente_abierto_app.db
+*.pyc
+.DS_Store
