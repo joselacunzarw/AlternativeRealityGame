@@ -1,6 +1,6 @@
 # 🕶️ Expediente Abierto - Cyberpunk Noir ARG
 
-Motor de IA conversacional para un juego de realidad aumentada (ARG) de detectives, con estética **Tech Noir** y seguridad de grado comercial.
+Motor de IA conversacional para un juego de realidad alternativa (ARG) de detectives, con estética **Tech Noir** y seguridad de grado comercial.
 
 ## 🚀 Características del Sistema
 
