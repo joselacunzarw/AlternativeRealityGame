@@ -33,13 +33,21 @@ async def request_otp(req: OtpRequest, db: Session = Depends(get_db)):
     code = str(random.randint(100000, 999999))
     user.otp_code = code
     user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
-    db.commit()
     
-    # Enviar correo de seguridad
+    # Enviar correo de seguridad ANTES de persistir
     subject = "🔑 Código de Acceso - Agencia"
     body = f"DETECTIVE:\n\nSu código de autorización de un solo uso es:\n\n{code}\n\nIngréselo en la terminal segura. Este código se autodestruirá en 10 minutos."
-    send_smtp_email(to_email=email, subject=subject, text_content=body)
+    mail_sent = send_smtp_email(to_email=email, subject=subject, text_content=body)
     
+    if not mail_sent:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail="No se pudo enviar el código OTP. Verifica tu correo o intenta más tarde."
+        )
+    
+    # Solo persistimos el OTP si el mail salió
+    db.commit()
     return {"success": True, "message": "OTP enviado al correo."}
 
 @router.post("/auth/verify-otp")

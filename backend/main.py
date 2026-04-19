@@ -1,3 +1,7 @@
+# Cargar variables de entorno ANTES de cualquier import que las necesite
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -19,6 +23,10 @@ async def lifespan(app: FastAPI):
     yield
     # Cancela ordenadamente al cerrar el servidor
     task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass  # Esperado: la tarea fue cancelada exitosamente
 
 app = FastAPI(
     title="Expediente Abierto - API MVP",

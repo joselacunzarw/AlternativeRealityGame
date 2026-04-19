@@ -40,7 +40,7 @@ export default function Vault() {
             placeholder="Ej: LUNA-049" 
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            style={{ borderColor: error ? 'var(--danger-color)' : 'var(--border-color)', textTransform: 'uppercase' }}
+            style={{ borderColor: error ? 'var(--danger-red)' : 'var(--border-color)', textTransform: 'uppercase' }}
           />
           <button type="submit" className="btn-primary">
             Desencriptar
@@ -48,24 +48,24 @@ export default function Vault() {
         </form>
 
         {error && (
-          <p style={{ color: 'var(--danger-color)', marginTop: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <p style={{ color: 'var(--danger-red)', marginTop: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             <AlertTriangle size={16} /> Clave inválida o revocada.
           </p>
         )}
 
         {result && (
-          <div className="animate-fade-in" style={{ marginTop: '3rem', padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid var(--success-color)', borderRadius: '8px', textAlign: 'left' }}>
+          <div className="animate-fade-in" style={{ marginTop: '3rem', padding: '2rem', background: 'rgba(0, 255, 0, 0.05)', border: '1px solid var(--neon-green)', borderRadius: '8px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <Unlock color="var(--success-color)" />
-              <h3 style={{ color: 'var(--success-color)' }}>ACCESO COCNEDIDO</h3>
+              <Unlock color="var(--neon-green)" />
+              <h3 style={{ color: 'var(--neon-green)' }}>ACCESO CONCEDIDO</h3>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '4px' }}>
-              <FileText size={40} color="var(--text-main)" />
+              <FileText size={40} color="var(--text-primary)" />
               <div>
                 <h4 className="mono">{result.title}</h4>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.5rem 0 1rem 0' }}>{result.desc}</p>
-                <button className="btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', borderColor: 'var(--success-color)', color: 'var(--success-color)' }}>
+                <button className="btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>
                   Descargar Archivo
                 </button>
               </div>

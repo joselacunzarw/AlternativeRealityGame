@@ -1,27 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, CheckCircle, XCircle, Clock, Shield } from 'lucide-react'
+import { authFetch } from '../utils/api'
 
 export default function Profile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const userEmail = localStorage.getItem('userEmail');
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
-
   useEffect(() => {
     const token = localStorage.getItem('token');
 
-    if (!token || !userEmail) {
+    if (!token) {
       navigate('/');
       return;
     }
 
-    fetch(`${API_URL}/api/v1/users/me/profile`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(r => r.json())
+    authFetch('/api/v1/users/me/profile')
       .then(data => {
         setProfile(data);
         setLoading(false);
@@ -30,7 +25,7 @@ export default function Profile() {
         console.error("Error cargando perfil:", err);
         setLoading(false);
       });
-  }, [userEmail, navigate, API_URL]);
+  }, [navigate]);
 
   if (loading) return (
     <div className="container" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
@@ -53,6 +48,11 @@ export default function Profile() {
   // Total includes active case + past
   const totalCases = (profile.active_case ? 1 : 0) + (metrics.total_played || 0);
 
+  // Pre-compute joined date to avoid Date.now() in render
+  const joinedDate = profile.joined_at
+    ? new Date(profile.joined_at).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).toUpperCase()
+    : 'DESCONOCIDO';
+
   return (
     <div className="container animate-fade-in" style={{ padding: '2rem' }}>
       
@@ -67,7 +67,7 @@ export default function Profile() {
             <User size={12} style={{ display: 'inline', marginRight: 4 }} /> {profile.email}
           </p>
           <p className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-            <Clock size={12} style={{ display: 'inline', marginRight: 4 }} /> MIEMBRO DESDE: {new Date(profile.joined_at || Date.now()).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).toUpperCase()}
+            <Clock size={12} style={{ display: 'inline', marginRight: 4 }} /> MIEMBRO DESDE: {joinedDate}
           </p>
         </div>
       </header>
@@ -130,3 +130,4 @@ export default function Profile() {
     </div>
   )
 }
+

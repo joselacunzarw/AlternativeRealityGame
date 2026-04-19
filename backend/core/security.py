@@ -2,7 +2,14 @@ import jwt
 import os
 from datetime import datetime, timedelta, timezone
 
-SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-key-change-this-in-prod-expediente-abierto")
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "FATAL: La variable de entorno JWT_SECRET no está configurada. "
+        "El backend NO puede arrancar sin ella. "
+        "Configurala en backend/.env (ver .env.example)"
+    )
+
 ALGORITHM = "HS256"
 
 # Aprobado por el usuario: Expiración de 24 hs

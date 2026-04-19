@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage'
 import Dashboard from './components/Dashboard'
 import Vault from './components/Vault'
 import Profile from './components/Profile'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function Navigation() {
   const location = useLocation()
@@ -47,12 +48,13 @@ function App() {
       <Navigation />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/vault" element={<Vault />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/vault" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )
 }
 
 export default App
+

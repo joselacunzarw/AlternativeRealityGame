@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react'
 import { FolderKanban, Play, AlertTriangle, Radio, Shield } from 'lucide-react'
+import { authFetch } from '../utils/api'
 
 export default function Dashboard() {
   const [casos, setCasos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alertMsg, setAlertMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [showWarningModal, setShowWarningModal] = useState(null);
   
   const userEmail = localStorage.getItem('userEmail');
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
 
   const loadCases = () => {
     setLoading(true);
-    const token = localStorage.getItem('token');
-    fetch(`${API_URL}/api/v1/cases`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(r => r.json())
+    setErrorMsg("");
+    authFetch('/api/v1/cases')
       .then(data => {
         setCasos(data.cases || []);
         setLoading(false);
       })
       .catch(err => {
         console.error("Error cargando casos:", err);
+        setErrorMsg(err.message);
         setLoading(false);
       });
   }
@@ -34,21 +33,21 @@ export default function Dashboard() {
   const activeCase = casos.find(c => c.status === 'active');
 
   const initiateCase = (caseId) => {
-    const token = localStorage.getItem('token');
-    fetch(`${API_URL}/api/v1/game/start`, {
+    setErrorMsg("");
+    authFetch('/api/v1/game/start', {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
       body: JSON.stringify({ user_email: userEmail, case_id: caseId })
     })
-    .then(r => r.json())
     .then(data => {
       setAlertMsg(data.message || "Caso iniciado");
       setShowWarningModal(null);
       loadCases();
       setTimeout(() => setAlertMsg(""), 4000);
+    })
+    .catch(err => {
+      setShowWarningModal(null);
+      setErrorMsg(err.message);
+      setTimeout(() => setErrorMsg(""), 6000);
     });
   }
 
@@ -116,6 +115,13 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* === ERROR TOAST === */}
+      {errorMsg && (
+        <div className="glass-panel" style={{ background: 'rgba(255,0,80,0.05)', color: 'var(--danger-red)', borderColor: 'rgba(255,0,80,0.3)', padding: '1rem', marginBottom: '1.5rem', cursor: 'default', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertTriangle size={16} /> {errorMsg}
+        </div>
+      )}
+
       {/* === CASE GRID === */}
       {loading ? (
         <p className="mono animate-pulse" style={{ color: 'var(--neon-green)', fontSize: '0.85rem' }}>CONTACTANDO SERVIDORES DE LA AGENCIA...</p>
@@ -151,3 +157,4 @@ export default function Dashboard() {
     </div>
   )
 }
+
