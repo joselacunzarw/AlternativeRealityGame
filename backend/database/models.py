@@ -8,6 +8,11 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Autenticación Passwordless (OTP)
+    otp_code = Column(String, nullable=True)
+    otp_expires_at = Column(DateTime, nullable=True)
+    is_verified = Column(Integer, default=0) # 0=False, 1=True (SQLite)
 
 class GameSession(Base):
     __tablename__ = "game_sessions"

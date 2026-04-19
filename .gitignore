@@ -1,7 +1,11 @@
 backend/venv/
 backend/.env
 backend/__pycache__/
-backend/langgraph_checkpoints.sqlite
+backend/langgraph_checkpoints.sqlite*
 backend/expediente_abierto_app.db
+backend/*.log
+frontend/node_modules/
+frontend/dist/
 *.pyc
 .DS_Store
+.agent/

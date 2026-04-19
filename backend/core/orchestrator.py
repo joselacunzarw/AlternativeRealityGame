@@ -11,12 +11,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHARACTERS_PATH = Path(__file__).parent.parent / "models" / "characters.json"
-try:
-    with open(CHARACTERS_PATH, "r", encoding="utf-8") as f:
-        characters_db = json.load(f)
-except Exception:
-    characters_db = {}
+CASES_DIR = Path(__file__).parent.parent / "casos"
+
+characters_db = {}
+cases_db = {}
+
+if CASES_DIR.exists():
+    for case_file in CASES_DIR.glob("*.json"):
+        try:
+            with open(case_file, "r", encoding="utf-8") as f:
+                case_data = json.load(f)
+                case_id = case_data.get("case_id", case_file.stem)
+                cases_db[case_id] = case_data
+                
+                chars = case_data.get("characters", {})
+                for alias, info in chars.items():
+                    info["parent_case_id"] = case_id
+                    characters_db[alias] = info
+        except Exception as e:
+            print(f"Error cargando {case_file.name}: {e}")
 
 class GameState(TypedDict):
     from_email: str
@@ -40,22 +53,48 @@ def director_process(state: GameState):
 
 def character_process(state: GameState):
     username = state.get("to_email", "").split("@")[0].lower()
+    from_email = state.get("from_email", "").lower()
+    from_username = from_email.split("@")[0].lower() if from_email else ""
     char_info = characters_db.get(username)
     
     if not char_info:
         return {"action_taken": "character_not_found", "ai_response": f"El correo a {username} ha rebotado. Destinatario desconocido."}
+    
+    # Determinar quién escribe: ¿es un personaje del caso o el detective (jugador)?
+    sender_is_character = from_username in characters_db
+    if sender_is_character:
+        sender_identity = f"QUIEN TE ESCRIBE: {characters_db[from_username]['name']} ({characters_db[from_username]['role']}). Es otro personaje del caso."
+    else:
+        sender_identity = (
+            f"QUIEN TE ESCRIBE: Un detective privado contratado para investigar este caso. "
+            f"Su correo es {from_email}. NO es un personaje de la trama, es un investigador externo. "
+            f"Trátalo como 'detective' o 'investigador'. "
+            f"NUNCA lo confundas con otro personaje del caso (por ejemplo, NO lo llames Dr. Dell'Arno, ni uses el nombre de ningún otro personaje para dirigirte a él)."
+        )
         
     system_prompt = char_info["system_prompt"]
+    # Refuerzo de Identidad Estricto
+    persona_prefix = (
+        f"IDENTIDAD: Eres {char_info['name']}.\n"
+        f"ROL: {char_info['role']}.\n"
+        f"{sender_identity}\n"
+        f"REGLA CRÍTICA: Habla SIEMPRE en primera persona ('yo', 'mi', 'nosotros' si aplica a tu equipo). "
+        f"NUNCA te refieras a ti mismo o a {char_info['name']} en tercera persona. "
+        f"Eres el autor de este correo.\n\n"
+    )
+    
+    full_system_prompt = persona_prefix + system_prompt
     
     try:
         # LLM real con OpenAI
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
         # Combinamos el SystemPrompt + todo el historial de state["messages"]
-        raw_messages = [SystemMessage(content=system_prompt)] + state["messages"]
+        raw_messages = [SystemMessage(content=full_system_prompt)] + state["messages"]
+        
         response_msg = llm.invoke(raw_messages)
         
         return {
-            "messages": [response_msg],  # add_messages lo anexara automáticamente al estado final
+            "messages": [response_msg],
             "action_taken": "character_reply",
             "ai_response": response_msg.content
         }
