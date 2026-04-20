@@ -9,3 +9,5 @@ frontend/dist/
 *.pyc
 .DS_Store
 .agent/
+qa_results.json
+polillero.log

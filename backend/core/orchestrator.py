@@ -49,7 +49,124 @@ def route_email(state: GameState):
         return "character_node"
 
 def director_process(state: GameState):
-    return {"action_taken": "director_evaluation", "ai_response": "El Director ha archivado tu avance transitoriamente."}
+    """
+    El Director evalúa la resolución del detective usando la lógica
+    definida en el JSON del caso (win_conditions, lose_conditions).
+    """
+    # Determinar qué caso está jugando el detective
+    # Buscamos en el historial de mensajes pistas sobre el caso activo
+    from_email = state.get("from_email", "")
+    text = state.get("text_content", "")
+    subject = state.get("subject", "")
+    
+    # Intentar determinar el caso desde el asunto ("Resolución — Caso 3")
+    active_case_data = None
+    active_case_id = None
+    
+    # Buscar por patrón "Caso X" o "caso_id" en el asunto
+    subject_lower = subject.lower() if subject else ""
+    text_lower = text.lower() if text else ""
+    combined = subject_lower + " " + text_lower
+    
+    for cid, cdata in cases_db.items():
+        # Match por case_id directo o por título del caso
+        title_lower = cdata.get("title", "").lower()
+        if cid in combined or title_lower in combined:
+            active_case_data = cdata
+            active_case_id = cid
+            break
+    
+    # Fallback: buscar por número de caso ("caso 1", "caso 3", etc.)
+    if not active_case_data:
+        import re
+        caso_match = re.search(r'caso\s*(\d+)', combined)
+        if caso_match:
+            caso_num = caso_match.group(1)
+            # Mapear "caso 0" -> "caso_cero", "caso 1" -> "grabacion_1", etc.
+            num_to_id = {
+                "0": "caso_cero", "cero": "caso_cero",
+                "1": "grabacion_1",
+                "2": "herencia_2",
+                "3": "martes_3",
+                "4": "novia_4",
+                "5": "experimento_5"
+            }
+            mapped_id = num_to_id.get(caso_num)
+            if mapped_id and mapped_id in cases_db:
+                active_case_data = cases_db[mapped_id]
+                active_case_id = mapped_id
+    
+    # Si no encontramos caso, responder genérico
+    if not active_case_data:
+        return {
+            "action_taken": "director_no_case",
+            "ai_response": (
+                "Detective,\n\n"
+                "No hemos podido identificar a qué expediente se refiere su comunicación. "
+                "Por favor, reenvíe su resolución indicando el nombre o número de caso en el asunto.\n\n"
+                "Formato esperado: 'Resolución — Caso [número]'\n\n"
+                "— La Dirección"
+            )
+        }
+    
+    # Cargar la lógica del director
+    director_logic = active_case_data.get("director_logic", {})
+    win_conditions = director_logic.get("win_conditions", "No definidas.")
+    lose_conditions = director_logic.get("lose_conditions", "No definidas.")
+    case_title = active_case_data.get("title", active_case_id)
+    
+    # Construir el historial de conversación para contexto
+    conversation_history = ""
+    for msg in state.get("messages", []):
+        role = "Detective" if isinstance(msg, HumanMessage) else "Sistema"
+        conversation_history += f"\n[{role}]: {msg.content}\n"
+    
+    # System prompt del Director-Evaluador
+    director_system_prompt = f"""Eres el DIRECTOR DE EXPEDIENTES de una agencia de detectives de ficción. 
+Tu rol es evaluar si el detective ha resuelto correctamente un caso.
+
+=== CASO ACTIVO ===
+ID: {active_case_id}
+Título: {case_title}
+Briefing: {active_case_data.get('briefing_intro', 'N/A')}
+
+=== CONDICIONES DE VICTORIA ===
+{win_conditions}
+
+=== CONDICIONES DE DERROTA ===
+{lose_conditions}
+
+=== INSTRUCCIONES DE EVALUACIÓN ===
+1. Lee la resolución que el detective te envía.
+2. Compara su teoría con las condiciones de victoria y derrota.
+3. Determina qué FINAL corresponde (A, B, C, etc. según lo definido arriba).
+4. Responde EN PERSONAJE como el Director de la agencia:
+   - Si GANÓ: felicítalo con tono profesional y narra el desenlace del caso según el final que corresponda.
+   - Si PERDIÓ: indícale con respeto qué falló en su investigación y narra las consecuencias.
+   - Si es PARCIAL (acertó en algo pero no todo): dale una pista y una extensión de 12 horas.
+5. Firma siempre como "La Dirección — Expediente Abierto".
+6. Escribe en español. Tono: profesional, sobrio, con un toque de thriller noir.
+7. NO inventes hechos que no estén en las condiciones. Sé fiel al guion del caso.
+"""
+    
+    try:
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.4)
+        raw_messages = [
+            SystemMessage(content=director_system_prompt)
+        ] + state["messages"]
+        
+        response_msg = llm.invoke(raw_messages)
+        
+        return {
+            "messages": [response_msg],
+            "action_taken": "director_verdict",
+            "ai_response": response_msg.content
+        }
+    except Exception as e:
+        return {
+            "action_taken": "director_error",
+            "ai_response": f"[Error del Director: {str(e)}]"
+        }
 
 def character_process(state: GameState):
     username = state.get("to_email", "").split("@")[0].lower()
