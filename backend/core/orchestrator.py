@@ -52,101 +52,128 @@ def director_process(state: GameState):
     """
     El Director evalúa la resolución del detective usando la lógica
     definida en el JSON del caso (win_conditions, lose_conditions).
+    
+    Detección de caso:
+      1. Busca al jugador por email en la DB y toma su GameSession activa.
+      2. Fallback: busca por título/ID en el texto (para QA sin DB).
+    
+    Cierre de sesión:
+      - Si el veredicto es conclusivo, marca la sesión como 'completed'.
+      - Guarda el tipo de final y la respuesta del Director en la DB.
     """
-    # Determinar qué caso está jugando el detective
-    # Buscamos en el historial de mensajes pistas sobre el caso activo
+    import re
+    from datetime import datetime, timezone
+    
     from_email = state.get("from_email", "")
     text = state.get("text_content", "")
     subject = state.get("subject", "")
     
-    # Intentar determinar el caso desde el asunto ("Resolución — Caso 3")
     active_case_data = None
     active_case_id = None
+    db_session_obj = None  # La GameSession de la DB (si existe)
     
-    # Buscar por patrón "Caso X" o "caso_id" en el asunto
-    subject_lower = subject.lower() if subject else ""
-    text_lower = text.lower() if text else ""
-    combined = subject_lower + " " + text_lower
+    # ── 1. DETECCIÓN POR DB (método principal) ──────────────────────
+    try:
+        from database.database import SessionLocal
+        from database.models import User, GameSession
+        
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.email == from_email).first()
+            if user:
+                db_session_obj = (
+                    db.query(GameSession)
+                    .filter(GameSession.user_id == user.id, GameSession.status == "active")
+                    .order_by(GameSession.started_at.desc())
+                    .first()
+                )
+                if db_session_obj and db_session_obj.game_id in cases_db:
+                    active_case_id = db_session_obj.game_id
+                    active_case_data = cases_db[active_case_id]
+        finally:
+            if not db_session_obj:
+                db.close()
+    except Exception:
+        pass  # DB no disponible (ej. QA agent), usar fallback
     
-    for cid, cdata in cases_db.items():
-        # Match por case_id directo o por título del caso
-        title_lower = cdata.get("title", "").lower()
-        if cid in combined or title_lower in combined:
-            active_case_data = cdata
-            active_case_id = cid
-            break
-    
-    # Fallback: buscar por número de caso ("caso 1", "caso 3", etc.)
+    # ── 2. FALLBACK: detección por texto (QA y testing) ─────────────
     if not active_case_data:
-        import re
-        caso_match = re.search(r'caso\s*(\d+)', combined)
-        if caso_match:
-            caso_num = caso_match.group(1)
-            # Mapear "caso 0" -> "caso_cero", "caso 1" -> "grabacion_1", etc.
-            num_to_id = {
-                "0": "caso_cero", "cero": "caso_cero",
-                "1": "grabacion_1",
-                "2": "herencia_2",
-                "3": "martes_3",
-                "4": "novia_4",
-                "5": "experimento_5"
-            }
-            mapped_id = num_to_id.get(caso_num)
-            if mapped_id and mapped_id in cases_db:
-                active_case_data = cases_db[mapped_id]
-                active_case_id = mapped_id
+        subject_lower = (subject or "").lower()
+        text_lower = (text or "").lower()
+        combined = subject_lower + " " + text_lower
+        
+        for cid, cdata in cases_db.items():
+            title_lower = cdata.get("title", "").lower()
+            if cid in combined or title_lower in combined:
+                active_case_data = cdata
+                active_case_id = cid
+                break
+        
+        if not active_case_data:
+            caso_match = re.search(r'caso\s*(\d+|cero)', combined)
+            if caso_match:
+                caso_key = caso_match.group(1)
+                num_to_id = {
+                    "0": "caso_cero", "cero": "caso_cero",
+                    "1": "grabacion_1", "2": "herencia_2",
+                    "3": "martes_3", "4": "novia_4", "5": "experimento_5"
+                }
+                mapped_id = num_to_id.get(caso_key)
+                if mapped_id and mapped_id in cases_db:
+                    active_case_data = cases_db[mapped_id]
+                    active_case_id = mapped_id
     
-    # Si no encontramos caso, responder genérico
+    # ── 3. SIN CASO IDENTIFICADO ────────────────────────────────────
     if not active_case_data:
         return {
             "action_taken": "director_no_case",
             "ai_response": (
                 "Detective,\n\n"
-                "No hemos podido identificar a qué expediente se refiere su comunicación. "
-                "Por favor, reenvíe su resolución indicando el nombre o número de caso en el asunto.\n\n"
-                "Formato esperado: 'Resolución — Caso [número]'\n\n"
-                "— La Dirección"
+                "No hemos podido identificar a que expediente se refiere su comunicacion. "
+                "Asegurese de tener un caso activo antes de enviar su resolucion.\n\n"
+                "-- La Direccion"
             )
         }
     
-    # Cargar la lógica del director
+    # ── 4. CONSTRUIR PROMPT CON EPILOGOS COMPLETOS ──────────────────
     director_logic = active_case_data.get("director_logic", {})
     win_conditions = director_logic.get("win_conditions", "No definidas.")
     lose_conditions = director_logic.get("lose_conditions", "No definidas.")
     case_title = active_case_data.get("title", active_case_id)
+    briefing = active_case_data.get("briefing_intro", "N/A")
     
-    # Construir el historial de conversación para contexto
-    conversation_history = ""
-    for msg in state.get("messages", []):
-        role = "Detective" if isinstance(msg, HumanMessage) else "Sistema"
-        conversation_history += f"\n[{role}]: {msg.content}\n"
-    
-    # System prompt del Director-Evaluador
-    director_system_prompt = f"""Eres el DIRECTOR DE EXPEDIENTES de una agencia de detectives de ficción. 
+    director_system_prompt = f"""Eres el DIRECTOR DE EXPEDIENTES de una agencia de detectives de ficcion llamada "Expediente Abierto".
 Tu rol es evaluar si el detective ha resuelto correctamente un caso.
 
 === CASO ACTIVO ===
 ID: {active_case_id}
-Título: {case_title}
-Briefing: {active_case_data.get('briefing_intro', 'N/A')}
+Titulo: {case_title}
+Briefing Original: {briefing}
 
-=== CONDICIONES DE VICTORIA ===
+=== CONDICIONES DE VICTORIA (incluyen los finales posibles) ===
 {win_conditions}
 
 === CONDICIONES DE DERROTA ===
 {lose_conditions}
 
-=== INSTRUCCIONES DE EVALUACIÓN ===
-1. Lee la resolución que el detective te envía.
-2. Compara su teoría con las condiciones de victoria y derrota.
-3. Determina qué FINAL corresponde (A, B, C, etc. según lo definido arriba).
+=== INSTRUCCIONES DE EVALUACION ===
+1. Lee la resolucion que el detective te envia.
+2. Compara su teoria con las condiciones de victoria y derrota definidas arriba.
+3. Determina EXACTAMENTE que FINAL corresponde (A, B, C, D, etc. segun lo definido).
 4. Responde EN PERSONAJE como el Director de la agencia:
-   - Si GANÓ: felicítalo con tono profesional y narra el desenlace del caso según el final que corresponda.
-   - Si PERDIÓ: indícale con respeto qué falló en su investigación y narra las consecuencias.
-   - Si es PARCIAL (acertó en algo pero no todo): dale una pista y una extensión de 12 horas.
-5. Firma siempre como "La Dirección — Expediente Abierto".
-6. Escribe en español. Tono: profesional, sobrio, con un toque de thriller noir.
-7. NO inventes hechos que no estén en las condiciones. Sé fiel al guion del caso.
+   - Si GANO: felicitalo con tono profesional y narra el EPILOGO del final que corresponda.
+     USA los detalles del epilogo definido en las condiciones de victoria. No improvises.
+   - Si PERDIO: explicale que fallo en su investigacion y narra las consecuencias
+     segun lo definido en las condiciones de derrota.
+   - Si es PARCIAL (acerto en algo pero no todo): dale UNA pista concreta y una 
+     extension de 12 horas. NO cierres el caso aun.
+5. Firma siempre como "La Direccion -- Expediente Abierto".
+6. Escribe en espanol. Tono: profesional, sobrio, thriller noir.
+7. NO inventes hechos. Se fiel al guion del caso.
+8. AL FINAL de tu respuesta, en una linea separada, incluye EXACTAMENTE una de estas etiquetas:
+   [VERDICT:win_a] o [VERDICT:win_b] o [VERDICT:win_c] o [VERDICT:win_d]
+   [VERDICT:lose] o [VERDICT:partial]
+   Esto es para el sistema interno, el detective no lo ve.
 """
     
     try:
@@ -156,13 +183,46 @@ Briefing: {active_case_data.get('briefing_intro', 'N/A')}
         ] + state["messages"]
         
         response_msg = llm.invoke(raw_messages)
+        ai_text = response_msg.content
+        
+        # ── 5. EXTRAER VEREDICTO Y LIMPIAR RESPUESTA ────────────────
+        verdict_tag = "unknown"
+        verdict_match = re.search(r'\[VERDICT:(\w+)\]', ai_text)
+        if verdict_match:
+            verdict_tag = verdict_match.group(1)
+            # Remover la etiqueta de la respuesta visible al jugador
+            ai_text_clean = re.sub(r'\n?\[VERDICT:\w+\]', '', ai_text).strip()
+        else:
+            ai_text_clean = ai_text
+        
+        is_conclusive = verdict_tag.startswith("win") or verdict_tag == "lose"
+        
+        # ── 6. ACTUALIZAR DB ────────────────────────────────────────
+        if db_session_obj and is_conclusive:
+            try:
+                db_session_obj.status = "completed"
+                db_session_obj.completed_at = datetime.now(timezone.utc)
+                db_session_obj.verdict = verdict_tag
+                db_session_obj.director_summary = ai_text_clean[:2000]  # Cap para seguridad
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+        elif db_session_obj:
+            db.close()
         
         return {
             "messages": [response_msg],
-            "action_taken": "director_verdict",
-            "ai_response": response_msg.content
+            "action_taken": f"director_verdict_{verdict_tag}",
+            "ai_response": ai_text_clean
         }
     except Exception as e:
+        if db_session_obj:
+            try:
+                db.close()
+            except Exception:
+                pass
         return {
             "action_taken": "director_error",
             "ai_response": f"[Error del Director: {str(e)}]"

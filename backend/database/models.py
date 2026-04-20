@@ -19,8 +19,13 @@ class GameSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     game_id = Column(String, index=True)  # ID del caso
-    status = Column(String, default="active") # active, completed
+    status = Column(String, default="active") # active, completed, abandonado
     started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Metadata de cierre (poblada por el Director al evaluar)
+    completed_at = Column(DateTime, nullable=True)
+    verdict = Column(String, nullable=True)       # ej: "win_a", "win_b", "lose_c", "partial"
+    director_summary = Column(Text, nullable=True) # Respuesta completa del Director
     
     user = relationship("User")
 
