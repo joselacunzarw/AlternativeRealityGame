@@ -276,11 +276,127 @@ Responde ÚNICAMENTE con la palabra SAFE o UNSAFE."""
         }
 
 def route_after_moderator(state: GameState):
+    from langchain_core.messages import HumanMessage
     is_safe = state.get("is_safe", True)
-    if is_safe:
-        return "character_node"
-    else:
+    if not is_safe:
         return END
+        
+    human_count = sum(1 for m in state["messages"] if isinstance(m, HumanMessage))
+    print(f"[DEBUG] route_after_moderator: human_count={human_count}, total_msgs={len(state['messages'])}")
+    
+    # Cada 6 mensajes del jugador evaluamos si está atascado
+    if human_count > 0 and human_count % 6 == 0:
+        print("[DEBUG] Routing to active_director_node")
+        return "active_director_node"
+    else:
+        print("[DEBUG] Routing to character_node")
+        return "character_node"
+
+def active_director_process(state: GameState):
+    """
+    Evalúa si el jugador está estancado analizando el historial y las condiciones de victoria del caso.
+    Si está estancado, inyecta un SystemMessage secreto con una pista para que el personaje la utilice.
+    """
+    import re
+    from langchain_core.messages import SystemMessage
+    from database.database import SessionLocal
+    from database.models import User, GameSession
+    
+    from_email = state.get("from_email", "")
+    to_email = state.get("to_email", "")
+    subject = state.get("subject", "")
+    text = state.get("text_content", "")
+    
+    active_case_data = None
+    active_case_id = None
+    
+    try:
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.email == from_email).first()
+            if user:
+                db_session_obj = (
+                    db.query(GameSession)
+                    .filter(GameSession.user_id == user.id, GameSession.status == "active")
+                    .order_by(GameSession.started_at.desc())
+                    .first()
+                )
+                if db_session_obj and db_session_obj.game_id in cases_db:
+                    active_case_id = db_session_obj.game_id
+                    active_case_data = cases_db[active_case_id]
+        finally:
+            db.close()
+    except Exception:
+        pass
+        
+    # Fallback por texto (QA)
+    if not active_case_data:
+        subject_lower = (subject or "").lower()
+        text_lower = (text or "").lower()
+        combined = subject_lower + " " + text_lower
+        
+        for cid, cdata in cases_db.items():
+            if cid in combined or cdata.get("title", "").lower() in combined:
+                active_case_data = cdata
+                active_case_id = cid
+                break
+        
+        if not active_case_data:
+            caso_match = re.search(r'caso\s*(\d+|cero)', combined)
+            if caso_match:
+                caso_key = caso_match.group(1)
+                num_to_id = {
+                    "0": "caso_cero", "cero": "caso_cero",
+                    "1": "grabacion_1", "2": "herencia_2",
+                    "3": "martes_3", "4": "novia_4", "5": "experimento_5"
+                }
+                mapped_id = num_to_id.get(caso_key)
+                if mapped_id and mapped_id in cases_db:
+                    active_case_data = cases_db[mapped_id]
+                    active_case_id = mapped_id
+                    
+    if not active_case_data:
+        return {"action_taken": "active_director_skipped_nocase"}
+        
+    director_logic = active_case_data.get("director_logic", {})
+    win_conditions = director_logic.get("win_conditions", "No definidas.")
+    
+    from langchain_core.messages import HumanMessage, AIMessage
+    
+    history_text = "\\n".join([f"{'Jugador' if isinstance(m, HumanMessage) else 'Personaje'}: {m.content}" for m in state["messages"]])
+    
+    eval_prompt = f"""Eres el DIRECTOR ACTIVO del juego de detectives. Monitoreas el progreso del jugador.
+=== VERDAD DEL CASO (Condiciones de Victoria) ===
+{win_conditions}
+
+=== HISTORIAL DE CONVERSACIÓN ===
+{history_text}
+
+Revisa el historial de la conversación. ¿El detective está cerca de resolver algo o está completamente estancado (haciendo preguntas irrelevantes, repitiendo lo mismo, sin conectar pistas)?
+Si está avanzando normalmente o haciendo preguntas útiles, responde únicamente la palabra: PROGRESS.
+Si está estancado, responde la palabra: STUCK, seguida de una instrucción secreta para el personaje que debe responderle. La instrucción debe decirle cómo deslizar una pista MUY sutil en tu próxima respuesta basándote en la verdad del caso.
+Ejemplo si está estancado:
+STUCK
+INSTRUCCIÓN DEL DIRECTOR: El detective no se da cuenta de la mentira de las fechas. En tu próxima respuesta, desliza un comentario casual sobre el calendario que lo ayude a atar cabos. NO rompas tu personaje."""
+    
+    try:
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+        response_msg = llm.invoke([SystemMessage(content=eval_prompt)])
+        content = response_msg.content.strip()
+        print(f"[DEBUG] Director LLM content: {content}")
+        
+        if content.startswith("STUCK") or "STUCK" in content.upper():
+            instruction = content.replace("STUCK", "").strip()
+            secret_msg = SystemMessage(content=f"[MENSAJE DEL SISTEMA INVISIBLE PARA EL JUGADOR]\n{instruction}\nDebes incorporar esta pista de forma natural en tu respuesta.")
+            return {
+                "messages": [secret_msg],
+                "action_taken": "active_director_hint_injected"
+            }
+        else:
+            return {"action_taken": "active_director_progress_ok"}
+            
+    except Exception as e:
+        return {"action_taken": f"active_director_error_{str(e)}"}
 
 def character_process(state: GameState):
     username = state.get("to_email", "").split("@")[0].lower()
@@ -345,11 +461,13 @@ memory = SqliteSaver(conn)
 workflow = StateGraph(GameState)
 workflow.add_node("director_node", director_process)
 workflow.add_node("moderator_node", moderator_process)
+workflow.add_node("active_director_node", active_director_process)
 workflow.add_node("character_node", character_process)
 
 workflow.set_conditional_entry_point(route_email)
 workflow.add_edge("director_node", END)
 workflow.add_conditional_edges("moderator_node", route_after_moderator)
+workflow.add_edge("active_director_node", "character_node")
 workflow.add_edge("character_node", END)
 
 # Invocable con Memoria persistente durante el tiempo de ejecución y en disco
