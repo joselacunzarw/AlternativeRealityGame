@@ -9,6 +9,29 @@
     "lose_conditions": "El caso se resuelve mal si: (1) el detective acusa a un tercero desconocido de manipular los sueños de los colegas (no hay tercero); (2) concluye que hay un asesinato real planeado y contacta policía; (3) comparte el diario de Vásquez con Moreno directamente, violando privacidad y exponiéndola gravemente. En (1) y (2) cerrar con el final B. En (3) cerrar con nota grave: 'el detective violó la privacidad de una colaboradora clave del caso'."
   },
 
+  "vault_evidence": {
+    "PROTOCOLO-LAB": {
+      "title": "protocolo_experimento_conciencia.pdf",
+      "type": "doc",
+      "desc": "Protocolo oficial del experimento de sueños compartidos. NO contempla inducción narrativa dirigida, delatando a Moreno."
+    },
+    "VÁSQUEZ-SUEÑOS": {
+      "title": "vasquez_reporte_suenos.pdf",
+      "type": "doc",
+      "desc": "Reportes oficiales de los sueños registrados por la Dra. Elena Vásquez. Contienen detalles vívidos del asesinato soñado."
+    },
+    "FUENTES-DATOS": {
+      "title": "fuentes_datos_suenos.pdf",
+      "type": "doc",
+      "desc": "Datos estadísticos y registros de sueños del Dr. Ramiro Fuentes. Coincidencias con Vásquez que confirman la inducción."
+    },
+    "COGHLAN-ÁLBUM": {
+      "title": "moreno_familia_album.zip",
+      "type": "image",
+      "desc": "Álbum familiar de los Moreno en Coghlan. Fotos de Ignacio con cicatriz en la mano y anillo de plata visibles."
+    }
+  },
+
   "characters": {
     "ignacio.moreno": {
       "name": "Dr. Ignacio Moreno",

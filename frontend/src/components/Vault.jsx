@@ -1,25 +1,46 @@
 import React, { useState } from 'react'
-import { Lock, Unlock, FileText, AlertTriangle } from 'lucide-react'
+import { Lock, Unlock, FileText, AlertTriangle, Loader2, Headphones, Image } from 'lucide-react'
+import { authFetch } from '../utils/api'
 
-// Simulador temporal de contraseñas de las pruebas estáticas
-const MOCK_DB = {
-  'TRINIDAD-1994': { title: '1994_osvaldo_radio.mp3', type: 'audio', desc: 'Audio confidencial interceptado en dial local. Contiene confesión.' },
-  'LUNA': { title: 'pruebatres.pdf', type: 'doc', desc: 'Reporte balístico de la pericia no revelada.' }
+// Mapear tipo de evidencia a un icono apropiado
+function EvidenceIcon({ type, size = 40 }) {
+  switch (type) {
+    case 'audio':
+      return <Headphones size={size} color="var(--text-primary)" />
+    case 'image':
+      return <Image size={size} color="var(--text-primary)" />
+    default:
+      return <FileText size={size} color="var(--text-primary)" />
+  }
 }
 
 export default function Vault() {
   const [code, setCode] = useState('');
   const [result, setResult] = useState(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleUnlock = (e) => {
+  const handleUnlock = async (e) => {
     e.preventDefault();
-    if(MOCK_DB[code.toUpperCase()]) {
-      setResult(MOCK_DB[code.toUpperCase()]);
-      setError(false);
-    } else {
+    if (!code.trim()) return;
+
+    setLoading(true);
+    setResult(null);
+    setError(null);
+
+    try {
+      const data = await authFetch('/api/v1/vault/unlock', {
+        method: 'POST',
+        body: JSON.stringify({ code: code.trim() }),
+      });
+
+      setResult(data.evidence);
+      setError(null);
+    } catch (err) {
       setResult(null);
-      setError(true);
+      setError(err.message || 'Error desconocido al desencriptar.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -36,38 +57,40 @@ export default function Vault() {
         <form onSubmit={handleUnlock} style={{ display: 'flex', gap: '1rem', maxWidth: '400px', margin: '0 auto' }}>
           <input 
             type="text" 
+            id="vault-code-input"
             className="input-field" 
-            placeholder="Ej: LUNA-049" 
+            placeholder="Ej: TRINIDAD-1994" 
             value={code}
             onChange={(e) => setCode(e.target.value)}
+            disabled={loading}
             style={{ borderColor: error ? 'var(--danger-red)' : 'var(--border-color)', textTransform: 'uppercase' }}
           />
-          <button type="submit" className="btn-primary">
-            Desencriptar
+          <button type="submit" id="vault-unlock-btn" className="btn-primary" disabled={loading || !code.trim()}>
+            {loading ? <Loader2 size={18} className="spin" /> : 'Desencriptar'}
           </button>
         </form>
 
         {error && (
           <p style={{ color: 'var(--danger-red)', marginTop: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <AlertTriangle size={16} /> Clave inválida o revocada.
+            <AlertTriangle size={16} /> {error}
           </p>
         )}
 
         {result && (
-          <div className="animate-fade-in" style={{ marginTop: '3rem', padding: '2rem', background: 'rgba(0, 255, 0, 0.05)', border: '1px solid var(--neon-green)', borderRadius: '8px', textAlign: 'left' }}>
+          <div id="vault-result" className="animate-fade-in" style={{ marginTop: '3rem', padding: '2rem', background: 'rgba(0, 255, 0, 0.05)', border: '1px solid var(--neon-green)', borderRadius: '8px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
               <Unlock color="var(--neon-green)" />
               <h3 style={{ color: 'var(--neon-green)' }}>ACCESO CONCEDIDO</h3>
             </div>
             
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '4px' }}>
-              <FileText size={40} color="var(--text-primary)" />
+              <EvidenceIcon type={result.type} />
               <div>
                 <h4 className="mono">{result.title}</h4>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.5rem 0 1rem 0' }}>{result.desc}</p>
-                <button className="btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>
-                  Descargar Archivo
-                </button>
+                <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--neon-green)', opacity: 0.7 }}>
+                  TIPO: {result.type.toUpperCase()} — CLASIFICACIÓN: RESTRINGIDO
+                </span>
               </div>
             </div>
           </div>

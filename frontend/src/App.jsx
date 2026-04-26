@@ -31,6 +31,7 @@ function Navigation() {
       
       <div className="nav-links">
         <Link to="/dashboard" className={location.pathname === '/dashboard' ? 'active' : ''}>Despacho</Link>
+        <Link to="/vault" className={location.pathname === '/vault' ? 'active' : ''}>Bóveda</Link>
         <Link to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>Legajo</Link>
         {isLoggedIn && (
           <a onClick={handleLogout} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>

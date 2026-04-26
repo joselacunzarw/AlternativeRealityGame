@@ -9,6 +9,39 @@
     "lose_conditions": "El caso se resuelve mal si: (1) el detective acusa a Doña Elsa o a Rocío de haber inventado la foto; (2) concluye que efectivamente fue suicidio sin haber revisado las pistas forenses; (3) expone a Rocío con los sospechosos poniéndola en riesgo físico real (el comisario es tío de Pato); (4) envía resolución antes de contactar al menos a tres personajes. En (1) y (2) cerrar con nota de fallo del detective. En (3) cerrar con nota grave: 'el detective comprometió a su principal testigo'. En (4) no permitir cierre y devolver el mail."
   },
 
+  "vault_evidence": {
+    "BODA-1115": {
+      "title": "foto_anonima_boda.jpg",
+      "type": "image",
+      "desc": "Foto anónima de la fiesta de bodas. Al fondo aparece Pato Quiroga en un horario en el que dice no haber llegado aún."
+    },
+    "PERITO-BAÑO": {
+      "title": "escena_bano_perito.zip",
+      "type": "image",
+      "desc": "Fotos de la escena del crimen tomadas por el perito. Marcas de golpe en más de una ubicación del lavabo."
+    },
+    "MARISOL-ÁLBUM": {
+      "title": "marisol_album.zip",
+      "type": "image",
+      "desc": "Álbum fotográfico de Marisol Acuña proporcionado por su madre. Fotos personales y familiares."
+    },
+    "CAPTURAS-MARI": {
+      "title": "marisol_capturas_whatsapp.pdf",
+      "type": "doc",
+      "desc": "Capturas de WhatsApp del celular de Marisol. Mensajes entre Damián y Pato, explícitos, fechados. Evidencia clave."
+    },
+    "TIMESTAMP-PATO": {
+      "title": "foto_ampliada_timestamp.pdf",
+      "type": "doc",
+      "desc": "Análisis ampliado de la foto anónima con marca de tiempo 11:15. Contradice la declaración de Pato Quiroga."
+    },
+    "QUIROGA-LIMPIO": {
+      "title": "pato_registro_limpio.pdf",
+      "type": "doc",
+      "desc": "Registro penal de Patricio Quiroga. Completamente limpio. Su tío es el comisario local."
+    }
+  },
+
   "characters": {
     "elsa.acuna": {
       "name": "Elsa Acuña",

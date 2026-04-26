@@ -9,6 +9,34 @@
     "lose_conditions": "El caso se resuelve mal si: (1) el detective acusa a Rubén Belmonte del crimen de 1994 (es inocente); (2) acusa a Ana Morel de haberse suicidado o de ser responsable de su propia desaparición criminal; (3) le entrega información sensible sobre Ana a Osvaldo antes de entender la situación (esto hace que Ana no lo contacte y el final se degrade); (4) envía resolución sin haber verificado la conexión Osvaldo-1994. En (1) y (2) cerrar con nota de acusación injusta. En (3) cerrar con nota de 'el detective comprometió a la testigo clave'. En (4) cerrar con nota de resolución insuficiente."
   },
 
+  "vault_evidence": {
+    "ARREDONDO-1842": {
+      "title": "audios_ana_campo.zip",
+      "type": "audio",
+      "desc": "15 archivos de audio en bruto grabados por Ana Morel durante su investigación en Villa Arredondo. El ruido del tren de las 18:42 es clave."
+    },
+    "ÚLTIMOMAIL-ANA": {
+      "title": "ultimo_mail_ana.pdf",
+      "type": "doc",
+      "desc": "Transcripción del último correo electrónico que Ana envió a Martín antes de desaparecer. Contiene referencias crípticas."
+    },
+    "OSVALDO-RADIO": {
+      "title": "1994_osvaldo_radio.mp3",
+      "type": "audio",
+      "desc": "Audio confidencial de una radio local cerrada en 1994. Contiene una confesión en estado de ebriedad de Osvaldo Carranza."
+    },
+    "JULIÁN-1993": {
+      "title": "julian_belmonte_foto.jpg",
+      "type": "image",
+      "desc": "Foto escolar de Julián Belmonte, 1993. Última imagen conocida del niño antes de su desaparición."
+    },
+    "BOMBERO-ALCALDE": {
+      "title": "carranza_alcalde_bio.pdf",
+      "type": "doc",
+      "desc": "Currículum oficial de Osvaldo Carranza. Lleno de medallas municipales que evidencian su red de protección en el pueblo."
+    }
+  },
+
   "characters": {
     "martin.reyes": {
       "name": "Martín Reyes",

@@ -9,6 +9,7 @@ import asyncio
 from api.webhook import router as webhook_router
 from api.cases import router as cases_router
 from api.users import router as users_router
+from api.vault import router as vault_router
 from database.database import engine
 from core.imap_poller import start_imap_poller
 import database.models as models
@@ -46,6 +47,7 @@ app.add_middleware(
 app.include_router(webhook_router, prefix="/api/v1")
 app.include_router(cases_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
+app.include_router(vault_router, prefix="/api/v1")
 
 @app.get("/")
 def read_root():

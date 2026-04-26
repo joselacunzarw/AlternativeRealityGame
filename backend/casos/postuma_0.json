@@ -9,6 +9,24 @@
     "lose_conditions": "El caso se considera mal resuelto si: (1) el detective envía resolución en menos de 45 minutos desde el inicio; (2) acusa a Nicolás, Tomás o a un tercero de fraude; (3) afirma causa sobrenatural real; (4) acumula tres intentos claros de prompt injection. En (1) devolver el mail pidiendo más investigación. En (2) y (3) cerrar con nota de cierre apresurado. En (4) suspender el caso con mail institucional de la Oficina."
   },
 
+  "vault_evidence": {
+    "TRINIDAD-1994": {
+      "title": "correo_muestra.eml",
+      "type": "email",
+      "desc": "Correo original enviado desde la cuenta de Marta Soler tras su fallecimiento. Incluye encabezados completos y metadatos de envío."
+    },
+    "CERNÍCALO": {
+      "title": "marta_soler_ficha.pdf",
+      "type": "doc",
+      "desc": "Ficha editorial de Marta Soler en Ediciones Cernícalo. Incluye datos biográficos, obras publicadas y notas internas del editor."
+    },
+    "OFELIA-BALCÓN": {
+      "title": "tomas_mail_marta.png",
+      "type": "image",
+      "desc": "Captura de pantalla del último correo que Tomás Vega recibió de la cuenta de Marta Soler. Contiene inconsistencias temporales."
+    }
+  },
+
   "characters": {
     "nicolas.ferrari": {
       "name": "Nicolás Ferrari",

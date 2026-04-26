@@ -9,6 +9,39 @@
     "lose_conditions": "El caso se resuelve mal si: (1) el detective concluye que existe una secta peligrosa real y recomienda medidas legales sin verificar identidades; (2) refuerza la sensación de enfermedad mental del cliente sin buscar las pistas; (3) no descubre la identidad de Paula ni su estado de salud. En (1) y (2) cerrar con el final C (paranoia). En (3) dar una extensión pequeña de 12 horas y, si sigue sin conectar, cerrar con final C."
   },
 
+  "vault_evidence": {
+    "LEIDEN-2009": {
+      "title": "club_fotos_originales.zip",
+      "type": "image",
+      "desc": "Fotos originales del grupo de investigación en Leiden, 2008-2010. No trucadas. Hernán aparece en varias."
+    },
+    "ACTAS-MARTES": {
+      "title": "actas_leiden.pdf",
+      "type": "doc",
+      "desc": "Actas formales de las reuniones del grupo de los martes en la Universidad de Leiden. Firmadas por todos los miembros."
+    },
+    "DELLARNO-CV": {
+      "title": "hernan_cv_academico.pdf",
+      "type": "doc",
+      "desc": "Currículum vitae académico de Hernán Dell'Arno. Incluye publicaciones con coautores holandeses entre 2009 y 2011."
+    },
+    "COAUTORÍA-NL": {
+      "title": "papers_leiden_coautoria.pdf",
+      "type": "doc",
+      "desc": "Papers académicos co-firmados por Hernán y colegas de Leiden. Evidencia irrefutable de su participación en el grupo."
+    },
+    "NIETZSCHE-GATA": {
+      "title": "paula_diagnostico_privado.pdf",
+      "type": "doc",
+      "desc": "Diagnóstico médico privado de Paula van Dijk. Cáncer de páncreas terminal. Solo disponible si el detective ya conectó con Juan y Paula."
+    },
+    "JUAN-FOTOS": {
+      "title": "juan_fotos_leiden_privadas.zip",
+      "type": "image",
+      "desc": "Fotos personales de Juan Beretta de la época en Leiden. Incluyen imágenes de reuniones informales del grupo."
+    }
+  },
+
   "characters": {
     "hernan.dellarno": {
       "name": "Hernán Dell'Arno",

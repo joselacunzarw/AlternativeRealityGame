@@ -9,6 +9,34 @@
     "lose_conditions": "El caso se resuelve mal si: (1) el detective acusa a Isabel, Marco o Lucía de conspiración (ninguno lo es); (2) concluye que el caso es un fraude criminal y se retira; (3) recomienda a Lucía como sucesora a pesar de que ella le dice explícitamente que no quiere el grupo. En (1) cerrar con nota de acusación infundada. En (2) cerrar con mail de un Farré ofendido. En (3) cerrar con nota de que el detective ignoró el deseo expreso de la candidata."
   },
 
+  "vault_evidence": {
+    "VALENTE-DOSSIER": {
+      "title": "dossier_hijos_valente.pdf",
+      "type": "doc",
+      "desc": "Dossier testamentario preparado por el Dr. Farré con perfiles de los cuatro hijos de Eduardo Valente."
+    },
+    "CERNÍCALO-BERLÍN": {
+      "title": "lucia_valente_portfolio.pdf",
+      "type": "doc",
+      "desc": "Portfolio artístico de Lucía Valente. Exposiciones en Berlín y Buenos Aires. Incluye su renuncia formal a la herencia."
+    },
+    "REBOTE-ONG": {
+      "title": "marco_fundacion_rebote.pdf",
+      "type": "doc",
+      "desc": "Documentación de la Fundación Rebote, ONG de rehabilitación fundada por Marco Valente. Un secreto que nadie en la familia conoce."
+    },
+    "WHARTON-39": {
+      "title": "santiago_balances_auditoria.pdf",
+      "type": "doc",
+      "desc": "Balances y auditoría del grupo hotelero preparados por Santiago Valente. Contiene inconsistencias sospechosas."
+    },
+    "BOUTIQUE-BALANCE": {
+      "title": "valente_balances_recientes.pdf",
+      "type": "doc",
+      "desc": "Estados financieros recientes del grupo Hoteles Valente, proporcionados por Isabel, la directora de operaciones."
+    }
+  },
+
   "characters": {
     "dr.farre": {
       "name": "Dr. Alejandro Farré",

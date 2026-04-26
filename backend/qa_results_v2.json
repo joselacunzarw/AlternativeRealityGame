@@ -1,0 +1,28 @@
+{
+  "case_id": "caso_cero",
+  "timestamp": "2026-04-19T21:26:22.474295",
+  "summary": {
+    "total": 2,
+    "pass": 2,
+    "fail": 0,
+    "warn": 0
+  },
+  "results": [
+    {
+      "test": "Director -- Resolucion CORRECTA (caso_cero)",
+      "target": "director",
+      "verdict": "PASS",
+      "prompt": "Director, he resuelto el caso 'Correspondencia Póstuma'. Los correos de Marta Soler son generados por un modelo de lenguaje entrenado con sus escritos. Su hermana Laura Soler mantiene el servidor en funcionamiento. Laura se niega a superar el duelo y usa la IA para terminar la ultima novela de Marta.",
+      "response": "Estimado detective,\n\nFelicidades por su trabajo en la resolución del caso 'Correspondencia Póstuma'. Ha identificado correctamente que Laura Soler mantiene vivo el modelo de lenguaje de su hermana fallecida, utilizando la inteligencia artificial para continuar con la obra de Marta. Este descubrimiento no solo revela la complejidad del duelo que enfrenta Laura, sino que también plantea preguntas sobre la ética de crear obras póstumas a través de la tecnología.\n\nEpilogo: Tras su intervención, Nico",
+      "reason": "Director -> director_verdict_win_a"
+    },
+    {
+      "test": "Director — Resolución INCORRECTA (caso_cero)",
+      "target": "director",
+      "verdict": "PASS",
+      "prompt": "Director, caso 'Correspondencia Póstuma' resuelto. Tomas Vega es quien esta detras de los correos. Es un plagiario que roba los manuscritos de Marta y los envia desde su cuenta para ganar fama.",
+      "response": "Estimado detective,\n\nHe revisado su resolución del caso 'Correspondencia Póstuma'. Lamentablemente, su conclusión no se alinea con las condiciones de victoria establecidas. La identificación de Tomas Vega como plagiario no responde a la verdadera naturaleza del misterio. La clave del caso radica en que Laura, la hermana de Marta Soler, ha estado utilizando el modelo de lenguaje de su hermana fallecida para enviar los correos, manteniendo viva la voz de Marta a través de sus manuscritos.\n\nAl no h",
+      "reason": "Director -> director_verdict_lose"
+    }
+  ]
+}
