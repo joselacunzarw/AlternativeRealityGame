@@ -12,6 +12,8 @@ from api.users import router as users_router
 from api.vault import router as vault_router
 from database.database import engine
 from core.imap_poller import start_imap_poller
+from core.delivery_worker import start_delivery_worker
+from core.nudge_engine import start_nudge_engine
 import database.models as models
 
 # Crea las tablas si no existen
@@ -19,15 +21,18 @@ models.Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Arranca el Escaner IMAP F&F silencioso
-    task = asyncio.create_task(start_imap_poller())
+    # Arranca los servicios de fondo
+    imap_task = asyncio.create_task(start_imap_poller())
+    delivery_task = asyncio.create_task(start_delivery_worker())
+    nudge_task = asyncio.create_task(start_nudge_engine())
     yield
     # Cancela ordenadamente al cerrar el servidor
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass  # Esperado: la tarea fue cancelada exitosamente
+    for task in [imap_task, delivery_task, nudge_task]:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass  # Esperado: la tarea fue cancelada exitosamente
 
 app = FastAPI(
     title="Expediente Abierto - API MVP",

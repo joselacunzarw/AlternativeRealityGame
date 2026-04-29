@@ -136,10 +136,19 @@ async def start_imap_poller():
                                 logging.info(f"Invocando grafo para {clean_from} -> {char_alias} (Thread: {thread_id})")
                                 result = app_graph.invoke(init_state, config={"configurable": {"thread_id": thread_id}})
                                 
+                                action = result.get("action_taken", "")
                                 ai_text = result.get("ai_response", "")
 
-                                if ai_text:
-                                    logging.info(f"LangGraph respondió con éxito. Acción tomada: {result.get('action_taken')}. Despachando a {clean_from}...")
+                                if action == "time_guardian_queued":
+                                    # El Guardián del Tiempo encoló la respuesta para entrega diferida.
+                                    # El delivery_worker la enviará cuando corresponda.
+                                    logging.info(
+                                        f"Time Guardian encoló la respuesta de {char_alias}. "
+                                        f"El delivery_worker la entregará con delay."
+                                    )
+                                elif ai_text:
+                                    # Respuestas inmediatas (director, moderator, errores)
+                                    logging.info(f"LangGraph respondió con éxito. Acción: {action}. Despachando inmediato a {clean_from}...")
                                     send_smtp_email(clean_from, f"RE: {subject}", ai_text)
 
                     except Exception as email_err:

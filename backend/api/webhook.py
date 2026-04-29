@@ -29,8 +29,17 @@ async def receive_inbound_email(payload: InboundEmailPayload):
     # Ejecutar grafo guardando estado en hilo (MemorySaver)
     result = app_graph.invoke(initial_state, config=config)
     
+    action = result.get("action_taken", "unknown")
+    
+    if action == "time_guardian_queued":
+        return AgentResponse(
+            success=True,
+            action="time_guardian_queued",
+            ai_response="Respuesta encolada. El personaje responderá con latencia realista."
+        )
+    
     return AgentResponse(
         success=True,
-        action=result.get("action_taken", "unknown"),
+        action=action,
         ai_response=result.get("ai_response", "Error al procesar.")
     )

@@ -5,6 +5,7 @@ import { authFetch } from '../utils/api'
 export default function Dashboard() {
   const [casos, setCasos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [alertMsg, setAlertMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [showWarningModal, setShowWarningModal] = useState(null);
@@ -33,6 +34,8 @@ export default function Dashboard() {
   const activeCase = casos.find(c => c.status === 'active');
 
   const initiateCase = (caseId) => {
+    if (processing) return;
+    setProcessing(true);
     setErrorMsg("");
     authFetch('/api/v1/game/start', {
       method: "POST",
@@ -41,11 +44,13 @@ export default function Dashboard() {
     .then(data => {
       setAlertMsg(data.message || "Caso iniciado");
       setShowWarningModal(null);
+      setProcessing(false);
       loadCases();
       setTimeout(() => setAlertMsg(""), 4000);
     })
     .catch(err => {
       setShowWarningModal(null);
+      setProcessing(false);
       setErrorMsg(err.message);
       setTimeout(() => setErrorMsg(""), 6000);
     });
@@ -73,9 +78,9 @@ export default function Dashboard() {
               Si aceptas una nueva asignación, el caso anterior será archivado permanentemente y se considerará un <strong style={{ color: 'var(--danger-red)' }}>FRACASO</strong> en tu legajo.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button className="btn-outline" onClick={() => setShowWarningModal(null)}>CANCELAR</button>
-              <button className="btn-danger" onClick={() => initiateCase(showWarningModal)}>
-                ABANDONAR Y PROCEDER
+              <button className="btn-outline" onClick={() => setShowWarningModal(null)} disabled={processing}>CANCELAR</button>
+              <button className="btn-danger" onClick={() => initiateCase(showWarningModal)} disabled={processing}>
+                {processing ? "SINCRONIZANDO..." : "ABANDONAR Y PROCEDER"}
               </button>
             </div>
           </div>
@@ -142,8 +147,13 @@ export default function Dashboard() {
               </p>
 
               {caso.status === 'disponible' || caso.status === 'abandonado' || (caso.status && caso.status.startsWith && caso.status.startsWith('completed')) ? (
-                <button className="btn-primary" style={{ width: '100%' }} onClick={() => handleStartRequest(caso.id)}>
-                  <Play size={14} /> INICIAR EXPEDIENTE
+                <button 
+                  className="btn-primary" 
+                  style={{ width: '100%' }} 
+                  onClick={() => handleStartRequest(caso.id)}
+                  disabled={processing}
+                >
+                  {processing ? "PROCESANDO..." : <><Play size={14} /> INICIAR EXPEDIENTE</>}
                 </button>
               ) : (
                 <button className="btn-outline" style={{ width: '100%', opacity: 0.4, cursor: 'not-allowed' }} disabled>
