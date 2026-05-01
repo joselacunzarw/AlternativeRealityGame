@@ -12,6 +12,7 @@ class User(Base):
     # Autenticación Passwordless (OTP)
     otp_code = Column(String, nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
+    otp_attempts = Column(Integer, default=0)  # Reintentos fallidos; se resetea al verificar
     is_verified = Column(Integer, default=0) # 0=False, 1=True (SQLite)
 
 class GameSession(Base):

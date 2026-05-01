@@ -4,6 +4,8 @@ import os
 import asyncio
 import re
 import logging
+from collections import defaultdict
+from datetime import datetime, timezone
 from email.header import decode_header
 from dotenv import load_dotenv
 from core.orchestrator import app_graph
@@ -19,6 +21,22 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+# Rate limiting: máximo de correos procesados por usuario por hora.
+# Protege contra jugadores que disparan costos enviando decenas de emails seguidos.
+RATE_LIMIT_PER_HOUR = int(os.getenv("IMAP_RATE_LIMIT_PER_HOUR", "20"))
+_rate_counters: dict[str, list] = defaultdict(list)  # email -> [timestamps]
+
+def _is_rate_limited(from_email: str) -> bool:
+    now = datetime.now(timezone.utc).timestamp()
+    window = 3600  # 1 hora
+    timestamps = _rate_counters[from_email]
+    # Limpiar timestamps fuera de la ventana
+    _rate_counters[from_email] = [t for t in timestamps if now - t < window]
+    if len(_rate_counters[from_email]) >= RATE_LIMIT_PER_HOUR:
+        return True
+    _rate_counters[from_email].append(now)
+    return False
 
 async def start_imap_poller():
     """
@@ -116,6 +134,10 @@ async def start_imap_poller():
                                     logging.warning(f"[{num}] Ignorando correo porque no tiene @alias en la primera línea (Prevención de Infinite Loop).")
                                     continue
                                     
+                                if _is_rate_limited(clean_from):
+                                    logging.warning(f"[{num}] Rate limit alcanzado para {clean_from}. Correo descartado.")
+                                    continue
+
                                 logging.info(f"Enrutando hacia personaje: {target_character}")
 
                                 email_str = f"Asunto: {subject}\n\nCuerpo:\n{text_body}"

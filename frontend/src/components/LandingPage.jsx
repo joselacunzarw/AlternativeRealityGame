@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, ShieldAlert, KeyRound, Terminal } from 'lucide-react'
+import { ChevronRight, ShieldAlert, KeyRound, Terminal, AlertTriangle } from 'lucide-react'
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -8,37 +8,43 @@ export default function LandingPage() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
 
   const handleRequestOtp = () => {
     if(!email.includes('@')) return;
     setLoading(true);
+    setErrorMsg("");
     fetch(`${API_URL}/api/v1/auth/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     })
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) throw new Error("Error del servidor. Intente nuevamente.");
+      return r.json();
+    })
     .then(data => {
       setLoading(false);
       if (data.success) setStep(2);
     })
     .catch(err => {
-      console.error("OTP request failed", err);
       setLoading(false);
+      setErrorMsg(err.message || "No se pudo conectar con el servidor.");
     })
   }
 
   const handleVerifyOtp = () => {
     if(otp.length < 6) return;
     setLoading(true);
+    setErrorMsg("");
     fetch(`${API_URL}/api/v1/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, code: otp })
     })
     .then(r => {
-      if(!r.ok) throw new Error("Código incorrecto o expirado");
+      if(!r.ok) throw new Error("Código incorrecto o expirado. Solicite uno nuevo.");
       return r.json();
     })
     .then(data => {
@@ -49,9 +55,9 @@ export default function LandingPage() {
       }
     })
     .catch(err => {
-      alert("Error: Código incorrecto o expirado.");
       setLoading(false);
-      setStep(1);
+      setErrorMsg(err.message || "Error de verificación.");
+      setOtp("");
     })
   }
 
@@ -116,6 +122,12 @@ export default function LandingPage() {
             </>
           )}
         </div>
+
+        {errorMsg && (
+          <p style={{ color: 'var(--danger-red)', fontSize: '0.82rem', marginTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+            <AlertTriangle size={14} /> {errorMsg}
+          </p>
+        )}
 
         <p className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '2rem', letterSpacing: '0.15em' }}>
           SISTEMA PROTEGIDO POR ENCRIPTACIÓN JWT DE GRADO MILITAR

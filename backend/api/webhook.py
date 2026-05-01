@@ -22,8 +22,10 @@ async def receive_inbound_email(payload: InboundEmailPayload):
         "messages": [human_msg]
     }
     
-    # Identificador de la conversacion (ej. emisor -> receptor)
-    thread_id = f"thread_{payload.from_email}_{payload.to_email}"
+    # Mismo formato que imap_poller: thread_{from_email}_{char_alias}
+    # Garantiza que ambos canales compartan la misma memoria LangGraph.
+    char_alias = payload.to_email.split("@")[0].lower()
+    thread_id = f"thread_{payload.from_email}_{char_alias}"
     config = {"configurable": {"thread_id": thread_id}}
     
     # Ejecutar grafo guardando estado en hilo (MemorySaver)

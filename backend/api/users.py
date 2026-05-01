@@ -29,10 +29,11 @@ async def request_otp(req: OtpRequest, db: Session = Depends(get_db)):
         user = User(email=email)
         db.add(user)
     
-    # Generar código de 6 dígitos
+    # Generar código de 6 dígitos y resetear intentos fallidos
     code = str(random.randint(100000, 999999))
     user.otp_code = code
     user.otp_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    user.otp_attempts = 0
     
     # Enviar correo de seguridad ANTES de persistir
     subject = "🔑 Código de Acceso - Agencia"
@@ -50,24 +51,33 @@ async def request_otp(req: OtpRequest, db: Session = Depends(get_db)):
     db.commit()
     return {"success": True, "message": "OTP enviado al correo."}
 
+OTP_MAX_ATTEMPTS = 5
+
 @router.post("/auth/verify-otp")
 async def verify_otp(req: OtpVerify, db: Session = Depends(get_db)):
     email = req.email.lower()
     user = db.query(User).filter(User.email == email).first()
-    
+
     if not user or not user.otp_code:
         raise HTTPException(status_code=400, detail="Mala solicitud. Pida un código nuevo.")
-        
-    if user.otp_code != req.code:
-        raise HTTPException(status_code=401, detail="Código incorrecto.")
-        
+
+    if (user.otp_attempts or 0) >= OTP_MAX_ATTEMPTS:
+        raise HTTPException(status_code=429, detail="Demasiados intentos fallidos. Solicite un nuevo código.")
+
     if datetime.now(timezone.utc) > user.otp_expires_at.replace(tzinfo=timezone.utc):
         raise HTTPException(status_code=401, detail="El código ha expirado.")
-        
+
+    if user.otp_code != req.code:
+        user.otp_attempts = (user.otp_attempts or 0) + 1
+        db.commit()
+        remaining = OTP_MAX_ATTEMPTS - user.otp_attempts
+        raise HTTPException(status_code=401, detail=f"Código incorrecto. Intentos restantes: {remaining}.")
+
     # Verificar usuario y limpiar OTP
     user.is_verified = 1
     user.otp_code = None
     user.otp_expires_at = None
+    user.otp_attempts = 0
     db.commit()
     
     # Emitir Token JWT seguro
@@ -93,6 +103,7 @@ async def get_my_profile(current_user: User = Depends(get_current_user), db: Ses
             "game_id": s.game_id,
             "title": case_title,
             "status": s.status,
+            "verdict": s.verdict,
             "started_at": s.started_at
         }
         
@@ -100,13 +111,14 @@ async def get_my_profile(current_user: User = Depends(get_current_user), db: Ses
             active_case = session_info
         else:
             past_cases.append(session_info)
-            
-    # Computar metrics
+
+    # El verdict distingue éxito de fracaso dentro de status="completed".
+    # "win_*" = resuelto con éxito, "lose" = fracaso, "partial" = incompleto.
     total_played = len(past_cases)
     abandoned = len([c for c in past_cases if c["status"] == "abandonado"])
-    completed_success = len([c for c in past_cases if c["status"] == "completed_success"])
-    completed_fail = len([c for c in past_cases if c["status"] == "completed_fail"])
-    
+    completed_success = len([c for c in past_cases if c["status"] == "completed" and (c.get("verdict") or "").startswith("win")])
+    completed_fail = len([c for c in past_cases if c["status"] == "completed" and c.get("verdict") in ("lose", "partial")])
+
     return {
         "email": user.email,
         "joined_at": user.created_at,

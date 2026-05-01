@@ -113,9 +113,10 @@ export default function Profile() {
                   <td>
                     {s.status === 'active' && <span className="badge badge-active animate-pulse">ACTIVO</span>}
                     {s.status === 'abandonado' && <span className="badge badge-abandoned">ABANDONADO</span>}
-                    {(s.status === 'completed_success' || s.status === 'completed') && <span className="badge badge-resolved">RESUELTO</span>}
-                    {s.status === 'completed_fail' && <span className="badge badge-abandoned">FALLIDO</span>}
-                    {!['active','abandonado','completed','completed_success','completed_fail'].includes(s.status) && <span className="badge" style={{ color: 'var(--text-muted)' }}>{s.status?.toUpperCase()}</span>}
+                    {s.status === 'completed' && s.verdict?.startsWith('win') && <span className="badge badge-resolved">RESUELTO</span>}
+                    {s.status === 'completed' && (s.verdict === 'lose' || s.verdict === 'partial') && <span className="badge badge-abandoned">FALLIDO</span>}
+                    {s.status === 'completed' && !s.verdict && <span className="badge badge-resolved">COMPLETADO</span>}
+                    {!['active', 'abandonado', 'completed'].includes(s.status) && <span className="badge" style={{ color: 'var(--text-muted)' }}>{s.status?.toUpperCase()}</span>}
                   </td>
                 </tr>
               ))}
