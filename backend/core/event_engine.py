@@ -79,6 +79,14 @@ async def _run_cycle():
         db.close()
 
 
+def _log(msg: str):
+    """Print directo a stdout para garantizar visibilidad en docker logs y threads."""
+    from datetime import datetime, timezone
+    ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    print(f"{ts} [EVENT] {msg}", flush=True)
+    logger.info(msg)
+
+
 def _process_session(session_id: int):
     """
     Evalúa y dispara el primer evento elegible para una sesión dada.
@@ -92,15 +100,20 @@ def _process_session(session_id: int):
     try:
         session = db.query(GameSession).filter(GameSession.id == session_id).first()
         if not session or session.status != "active":
+            _log(f"session_id={session_id} no activa, skip.")
             return
 
         case_data = cases_db.get(session.game_id)
         if not case_data:
+            _log(f"session_id={session_id} caso '{session.game_id}' no encontrado.")
             return
 
         proactive_events = case_data.get("proactive_events", [])
         if not proactive_events:
+            _log(f"session_id={session_id} caso sin proactive_events.")
             return
+
+        _log(f"session_id={session_id} caso='{session.game_id}' — evaluando {len(proactive_events)} evento(s).")
 
         now = datetime.now(timezone.utc)
 
@@ -153,22 +166,28 @@ def _process_session(session_id: int):
             # ¿Ya se disparó el máximo de veces?
             fires_count = sum(1 for fid in already_fired_ids if fid == event_id)
             if fires_count >= max_fires:
+                _log(f"  [{event_id}] ya disparado {fires_count}/{max_fires} veces, skip.")
                 continue
 
             # ¿Pasaron las horas mínimas desde el inicio?
-            # En DEV_MODE se escala: trigger_after_hours:8 → ~8 minutos reales.
-            if hours_since_start < trigger_hours * DEV_TIME_FACTOR:
+            threshold = trigger_hours * DEV_TIME_FACTOR
+            _log(f"  [{event_id}] tiempo: {hours_since_start:.3f}h transcurrido, umbral: {threshold:.3f}h.")
+            if hours_since_start < threshold:
+                _log(f"  [{event_id}] aún no alcanzó el umbral, skip.")
                 continue
 
             # ¿El personaje existe?
             char_info = characters_db.get(char_alias)
             if not char_info:
-                logger.warning(f"Event Engine: personaje '{char_alias}' no encontrado para evento '{event_id}'")
+                _log(f"  [{event_id}] personaje '{char_alias}' no encontrado, skip.")
                 continue
 
             # ── 4. EVALUAR CONDICIÓN NARRATIVA CON LLM ──────────────────
+            _log(f"  [{event_id}] evaluando condición narrativa con LLM...")
             if not _evaluate_trigger_condition(trigger_condition, history_text, event_id):
+                _log(f"  [{event_id}] LLM dijo NO, skip.")
                 continue
+            _log(f"  [{event_id}] LLM dijo SI — disparando evento.")
 
             # ── 5. DISPARAR EL EVENTO ────────────────────────────────────
             user = db.query(User).filter(User.id == session.user_id).first()
