@@ -329,8 +329,8 @@ No consultar al propietario por decisiones técnicas internas que no afecten la 
 
 | Turno | Agente | Fecha inicio | Fecha cierre | Estado |
 |---|---|---|---|---|
-| 1 | Antygravity (Gemini Pro) | Pendiente | — | Pendiente |
-| 2 | Claude Code (Claude Sonnet) | — | — | En espera |
+| 1 | Antygravity (Gemini Pro) | 2026-04-23 | 2026-05-01 | Completado |
+| 2 | Claude Code (Claude Sonnet) | — | — | Siguiente |
 | 3 | Codex (OpenAI) | — | — | En espera |
 
 *Este historial debe actualizarse al inicio y al cierre de cada turno.*
