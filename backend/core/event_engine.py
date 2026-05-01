@@ -33,6 +33,10 @@ MIN_HOURS_BETWEEN_EVENTS = (10 / 60) if DEV_MODE else 6  # 10 min en dev, 6h en 
 # Cada cuántos segundos corre el ciclo de evaluación
 POLL_INTERVAL = 60 if DEV_MODE else 1800  # 1 min en dev, 30 min en prod
 
+# En DEV_MODE, 1 hora de juego = 1 minuto real (factor 1/60)
+# Permite testear eventos sin esperar horas reales.
+DEV_TIME_FACTOR = (1 / 60) if DEV_MODE else 1
+
 
 async def start_event_engine():
     """
@@ -60,6 +64,7 @@ async def _run_cycle():
     db = SessionLocal()
     try:
         active_sessions = db.query(GameSession).filter(GameSession.status == "active").all()
+        logger.info(f"Event Engine: ciclo — {len(active_sessions)} sesión(es) activa(s).")
         for session in active_sessions:
             try:
                 await asyncio.get_event_loop().run_in_executor(None, _process_session, session.id)
@@ -146,7 +151,8 @@ def _process_session(session_id: int):
                 continue
 
             # ¿Pasaron las horas mínimas desde el inicio?
-            if hours_since_start < trigger_hours:
+            # En DEV_MODE se escala: trigger_after_hours:8 → ~8 minutos reales.
+            if hours_since_start < trigger_hours * DEV_TIME_FACTOR:
                 continue
 
             # ¿El personaje existe?
@@ -191,8 +197,10 @@ def _evaluate_trigger_condition(trigger_condition: str, history_text: str, event
     Ante cualquier error, asume True para no bloquear el evento indefinidamente.
     """
     if not history_text.strip():
-        # Sin historial todavía → no disparar (el jugador acaba de empezar)
-        return False
+        # Sin historial todavía — las condiciones "el detective aún no hizo X"
+        # son trivialmente verdaderas: el jugador no ha hecho nada todavía.
+        logger.info(f"Event Engine: sin historial para trigger '{event_id}' → asumiendo condición cumplida.")
+        return True
 
     eval_prompt = f"""Eres el DIRECTOR de un juego de detectives por email. Analizas el historial de conversación y decides si una condición narrativa se cumple.
 
