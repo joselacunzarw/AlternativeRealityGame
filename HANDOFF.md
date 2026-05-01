@@ -21,6 +21,7 @@
 3. **requirements.txt completado** — `backend/requirements.txt`
    - Agregado `python-multipart>=0.0.9` (requerido por FastAPI para form data).
    - Corregido `langgraph-checkpoint` → `langgraph-checkpoint-sqlite>=2.0.0` (el paquete correcto para `SqliteSaver`).
+   - Corregido `pydantic>=2.7.0` → `pydantic[email]>=2.7.0` (incluye `email-validator` necesario para `EmailStr` en schemas).
 
 4. **OTP brute force protection** — `api/users.py` + `database/models.py`
    - Nuevo campo `otp_attempts` en modelo `User` (default 0).
