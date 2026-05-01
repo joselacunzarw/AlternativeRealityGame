@@ -43,6 +43,20 @@ class Message(Base):
     
     session = relationship("GameSession")
 
+class FiredEvent(Base):
+    """
+    Registro de eventos proactivos ya disparados por el Event Engine.
+    Evita que un evento con max_fires=1 se dispare más de una vez por sesión.
+    """
+    __tablename__ = "fired_events"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("game_sessions.id"), index=True)
+    event_id = Column(String, index=True)  # Coincide con proactive_events[].id del JSON
+    fired_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    session = relationship("GameSession")
+
+
 class ScheduledMessage(Base):
     """
     Mensajes en "limbo" — generados por la IA pero aún no entregados al jugador.

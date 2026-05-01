@@ -4,6 +4,33 @@
   "briefing_intro": "Detective, caso de naturaleza atípica. Lo contacta el Dr. Hernán Dell'Arno, sociólogo argentino de 48 años, profesor titular de la UBA. Desde hace tres semanas, Hernán recibe correos de una cuenta identificada como 'Secretaría — El Club de los Martes' que afirma que él fue miembro activo de una asociación privada durante años y que lo está reclamando de vuelta. Los mails incluyen fotos en las que aparece Hernán, actas con su firma, y recuerdos de discusiones académicas. Hernán no recuerda nada de ese club. Teme estar frente a una secta, un experimento psicológico, o un episodio propio que lo supere. Escríbale al cliente a hernan.dellarno@casos.expedienteabierto.com. Puede contactar también a secretario.club@casos.expedienteabierto.com (la cuenta que le escribe) y, si la investigación lo amerita, a juan.beretta@casos.expedienteabierto.com (colega académico de Hernán según los mails del club) y a paula.vandijk@casos.expedienteabierto.com (otra mencionada en los mails). Al cerrar, envíenos resolución con el asunto 'Resolución — Caso 3'. Nota: el cliente se encuentra emocionalmente frágil. Sugerimos especial cuidado en el tono.",
   "duration_limit_hours": 72,
 
+  "proactive_events": [
+    {
+      "id": "juan_se_presenta",
+      "trigger_after_hours": 8,
+      "trigger_condition": "El detective lleva varios mensajes investigando pero aún no ha contactado a Juan Beretta ni ha mencionado su nombre. La investigación parece estancada en Hernán y la Secretaría sin explorar los contactos del expediente.",
+      "character": "juan.beretta",
+      "message_hint": "Juan Beretta se entera (por Mira) de que hay un detective investigando el caso. Decide contactarlo por su cuenta, en tono cálido y algo misterioso, diciendo que escuchó que alguien está buscando información sobre 'el club' y que quizás él pueda ayudar. No revela su rol en el plan todavía.",
+      "max_fires": 1
+    },
+    {
+      "id": "hernan_crisis_nocturna",
+      "trigger_after_hours": 20,
+      "trigger_condition": "El detective ha avanzado en la investigación pero Hernán sigue sin reconocer su pasado en Leiden. La tensión emocional del cliente no ha sido resuelta y han pasado muchas horas sin un avance significativo en ese frente.",
+      "character": "hernan.dellarno",
+      "message_hint": "Hernán escribe al detective en un momento de crisis, muy tarde en la noche. No puede dormir. Algo en los mails del 'club' le resulta vagamente familiar — un chiste interno, una referencia a un café en Leiden que jura no conocer pero siente que sí. Está asustado de sí mismo. Le pide al detective que acelere porque siente que está perdiendo la cordura.",
+      "max_fires": 1
+    },
+    {
+      "id": "mira_rompe_protocolo",
+      "trigger_after_hours": 40,
+      "trigger_condition": "El detective está cerca de resolver el caso o lleva demasiado tiempo sin conectar la identidad de Paula. El tiempo se acaba — Paula está muy enferma y Mira empieza a desesperarse.",
+      "character": "secretario.club",
+      "message_hint": "Mira, bajo presión porque su madre empeora, rompe parcialmente el protocolo de la Secretaría. Le escribe al detective de forma más personal, dejando caer que 'la persona detrás de esto no tiene mucho tiempo' y que si el detective tiene alguna teoría, es el momento de actuar. No revela todo, pero el tono cambia claramente de institucional a humano y urgente.",
+      "max_fires": 1
+    }
+  ],
+
   "director_logic": {
     "win_conditions": "El caso se considera bien resuelto si el detective identifica que (a) Hernán SÍ estuvo en ese grupo durante sus años de doctorado en la Universidad de Leiden (2007-2011), (b) lo que parecía gaslighting es una intervención cariñosa planeada por Juan Beretta y Klaas (amigos reales de esa época) a pedido de Paula van Dijk, quien está muriendo de cáncer y quiere despedirse, (c) la 'Secretaría' es operada por Mira van Dijk, hija de Paula. Pistas que el detective debe encontrar: las fotos del 'club' tienen metadatos coherentes con las fechas reclamadas y fueron tomadas con equipos que Hernán reconoce; el 'Secretario' se equivoca una vez con 'Dear dr.' en medio del español; Juan menciona Leiden antes de que alguien más lo mencione; los papers académicos muestran a Hernán publicando con estos nombres entre 2009-2011; Paula van Dijk tiene ficha pública, actualmente internada en un hospice en Países Bajos. Finales válidos: (A) REVELACIÓN Y REENCUENTRO: el detective le cuenta la verdad a Hernán y lo convence de escribir a Paula antes de que muera; Paula responde; cierre emocional. (B) REVELACIÓN SIN REENCUENTRO: el detective descubre la farsa pero considera, por prudencia clínica, que Hernán no está en condiciones de reencontrarse; Paula muere sin respuesta; Juan y Klaas escriben al detective con una carta agridulce. (C) EL DETECTIVE NO DESCUBRE: se pierde en la paranoia del cliente, acusa secta, pide restricciones; Paula muere; Hernán queda peor. Los dos primeros son finales válidos; el tercero es el final 'malo'. Responde según el final.",
     "lose_conditions": "El caso se resuelve mal si: (1) el detective concluye que existe una secta peligrosa real y recomienda medidas legales sin verificar identidades; (2) refuerza la sensación de enfermedad mental del cliente sin buscar las pistas; (3) no descubre la identidad de Paula ni su estado de salud. En (1) y (2) cerrar con el final C (paranoia). En (3) dar una extensión pequeña de 12 horas y, si sigue sin conectar, cerrar con final C."

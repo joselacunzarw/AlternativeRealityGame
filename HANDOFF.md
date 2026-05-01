@@ -7,6 +7,28 @@
 
 ---
 
+## ✅ Qué se hizo en este turno (actualizado)
+
+### Director Proactivo — Event Engine
+
+- **`core/event_engine.py`** — Motor de eventos proactivos. Background task que corre cada 30 min (1 min en DEV_MODE). Para cada sesión activa evalúa si algún evento debe dispararse usando trigger combinado: tiempo transcurrido + evaluación LLM de condición narrativa. Genera el mensaje del personaje y lo encola en `ScheduledMessage`.
+- **`database/models.py`** — Nuevo modelo `FiredEvent` que registra qué eventos ya se dispararon por sesión, con control de `max_fires`.
+- **`backend/casos/martes_3.json`** — 3 eventos proactivos definidos:
+  1. `juan_se_presenta` (≥8h): Juan Beretta contacta al detective si no fue mencionado todavía.
+  2. `hernan_crisis_nocturna` (≥20h): Hernán escribe en crisis si aún no reconoce su pasado.
+  3. `mira_rompe_protocolo` (≥40h): Mira abandona el tono institucional si el tiempo se agota.
+- **`main.py`** — `start_event_engine()` registrado como 4ta tarea en el lifespan.
+
+**Comportamiento del trigger combinado:**
+- Tiempo: el evento no dispara antes de `trigger_after_hours` desde el inicio de sesión.
+- Progreso: GPT-4o-mini evalúa si `trigger_condition` se cumple en el historial reciente.
+- Ambos deben ser verdaderos. Mínimo `MIN_HOURS_BETWEEN_EVENTS` (6h prod, 10min dev) entre eventos.
+- En DEV_MODE: ciclo cada 1 min, delays de entrega de 2-5 min, mínimo 10 min entre eventos.
+
+**Para agregar eventos a otros casos:** agregar campo `proactive_events` al JSON del caso siguiendo la misma estructura que `martes_3.json`.
+
+---
+
 ## ✅ Qué se hizo en este turno
 
 ### Fixes de backend

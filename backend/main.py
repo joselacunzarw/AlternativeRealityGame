@@ -15,6 +15,7 @@ from database.database import engine
 from core.imap_poller import start_imap_poller
 from core.delivery_worker import start_delivery_worker
 from core.nudge_engine import start_nudge_engine
+from core.event_engine import start_event_engine
 import database.models as models
 
 # Crea las tablas si no existen
@@ -26,9 +27,10 @@ async def lifespan(app: FastAPI):
     imap_task = asyncio.create_task(start_imap_poller())
     delivery_task = asyncio.create_task(start_delivery_worker())
     nudge_task = asyncio.create_task(start_nudge_engine())
+    event_task = asyncio.create_task(start_event_engine())
     yield
     # Cancela ordenadamente al cerrar el servidor
-    for task in [imap_task, delivery_task, nudge_task]:
+    for task in [imap_task, delivery_task, nudge_task, event_task]:
         task.cancel()
         try:
             await task
