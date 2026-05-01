@@ -24,6 +24,11 @@ from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger("event_engine")
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s [EVENT] %(message)s", datefmt="%H:%M:%S"))
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
 
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() in ("true", "1", "yes")
 
