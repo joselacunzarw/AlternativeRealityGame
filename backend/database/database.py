@@ -1,8 +1,11 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# SQLite local para MVP (Migrable a Supabase/PostgreSQL luego)
-SQLALCHEMY_DATABASE_URL = "sqlite:///./expediente_abierto_app.db"
+# Ruta configurable via DB_PATH para soportar Docker volumes.
+# Default: archivo local en el directorio de trabajo (desarrollo).
+_db_path = os.getenv("DB_PATH", "./expediente_abierto_app.db")
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_path}"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}

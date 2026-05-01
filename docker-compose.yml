@@ -1,0 +1,34 @@
+services:
+
+  backend:
+    build: ./backend
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Rutas de SQLite dentro del volumen persistente
+      DB_PATH: /app/data/expediente_abierto_app.db
+      DB_CHECKPOINT_PATH: /app/data/langgraph_checkpoints.sqlite
+      # CORS apunta al frontend containerizado
+      CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - backend_data:/app/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Vite embebe esta URL en el bundle al buildear.
+        # En producción cambiar por la URL pública del backend.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8001}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+    # Persiste los archivos SQLite entre reinicios del contenedor.

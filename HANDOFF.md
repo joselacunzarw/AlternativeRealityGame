@@ -1,6 +1,6 @@
 # HANDOFF — Claude Code (Claude Sonnet) → Codex (OpenAI)
 
-**Fecha:** 2026-05-01  
+**Fecha:** 2026-05-01 (actualizado)  
 **Agente saliente:** Claude Code (Claude Sonnet 4.6)  
 **Agente entrante:** Codex (OpenAI)  
 **Branch activa:** master
@@ -46,9 +46,27 @@
    - Ahora usa `verdict` para mostrar RESUELTO vs FALLIDO dentro de sesiones `completed`.
    - Caso edge: `completed` sin `verdict` muestra "COMPLETADO" genérico.
 
+### Dockerización completa
+
+8. **`backend/Dockerfile`** — imagen Python 3.11-slim, instala requirements, expone puerto 8001.
+9. **`frontend/Dockerfile`** — multi-stage: build con Node 20 + `npm run build`, serve con nginx:alpine.
+10. **`frontend/nginx.conf`** — configuración nginx con `try_files` para React Router y cache de assets.
+11. **`docker-compose.yml`** — orquesta backend + frontend. Volume `backend_data` persiste los SQLite entre reinicios. `VITE_API_URL` pasado como build arg.
+12. **`backend/.dockerignore` / `frontend/.dockerignore`** — excluyen `.env`, SQLite, `node_modules`, `__pycache__`.
+13. **Rutas SQLite parametrizadas** — `database/database.py` y `core/orchestrator.py` ahora leen `DB_PATH` y `DB_CHECKPOINT_PATH` del entorno. Default sigue siendo el path local de desarrollo; Docker las setea en `/app/data/`.
+
+Para levantar todo con Docker:
+```bash
+cp backend/.env.example backend/.env
+# Completar backend/.env con las keys reales
+docker compose up --build
+# Backend: http://localhost:8001
+# Frontend: http://localhost:5173
+```
+
 ### Documentación
 
-8. **README reescrito** — `README.md`
+14. **README reescrito** — `README.md`
    - Documenta los 4 subsistemas omitidos (Time Guardian, Nudge Engine, Active Director, Delivery Worker).
    - Elimina `(Próximamente)` del requirements.txt.
    - Agrega tabla de variables de entorno, flujo de juego y tabla de casos.
@@ -83,7 +101,7 @@
 Lista priorizada:
 
 1. **Suite de tests pytest** — Convertir `scripts/test_*.py` en tests formales con `pytest` y fixtures. Prioridad: `test_time_guardian.py`, `test_vault.py`, `test_moderator.py`, `test_active_director.py`.
-2. **Dockerfile + docker-compose** — Backend (Python/uvicorn) + Frontend (Node/vite build). Incluir variables de entorno en el compose.
+2. ~~**Dockerfile + docker-compose**~~ ✅ Completado por Claude Code.
 3. **Rate limiting en webhook HTTP** — Mismo mecanismo que el IMAP poller, aplicado al endpoint `POST /api/v1/webhook/inbound`.
 4. **Cleanup job de checkpoints LangGraph** — Job periódico (o en el delivery_worker) que borre checkpoints de sesiones con `status != "active"` del archivo `langgraph_checkpoints.sqlite`.
 5. **Vault: decidir estrategia de archivos** — Consultar al propietario si los archivos serán: (a) assets estáticos hosteados, (b) generados dinámicamente, o (c) links a Google Drive/S3. Hasta que se decida, dejar el metadata-only como está.

@@ -459,8 +459,9 @@ def character_process(state: GameState):
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
 
-# Conexión persistente en disco para la memoria de los chats de LangGraph
-conn = sqlite3.connect("langgraph_checkpoints.sqlite", check_same_thread=False)
+# Ruta configurable via DB_CHECKPOINT_PATH para soportar Docker volumes.
+_checkpoint_path = os.getenv("DB_CHECKPOINT_PATH", "langgraph_checkpoints.sqlite")
+conn = sqlite3.connect(_checkpoint_path, check_same_thread=False)
 memory = SqliteSaver(conn)
 
 workflow = StateGraph(GameState)
