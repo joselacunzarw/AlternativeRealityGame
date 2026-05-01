@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
+import os
 from api.webhook import router as webhook_router
 from api.cases import router as cases_router
 from api.users import router as users_router
@@ -41,9 +42,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], 
+    allow_origins=[o.strip() for o in cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

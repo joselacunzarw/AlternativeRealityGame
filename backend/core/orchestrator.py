@@ -72,7 +72,8 @@ def director_process(state: GameState):
     
     active_case_data = None
     active_case_id = None
-    db_session_obj = None  # La GameSession de la DB (si existe)
+    db_session_obj = None
+    db = None
     
     # ── 1. DETECCIÓN POR DB (método principal) ──────────────────────
     try:
@@ -80,21 +81,17 @@ def director_process(state: GameState):
         from database.models import User, GameSession
         
         db = SessionLocal()
-        try:
-            user = db.query(User).filter(User.email == from_email).first()
-            if user:
-                db_session_obj = (
-                    db.query(GameSession)
-                    .filter(GameSession.user_id == user.id, GameSession.status == "active")
-                    .order_by(GameSession.started_at.desc())
-                    .first()
-                )
-                if db_session_obj and db_session_obj.game_id in cases_db:
-                    active_case_id = db_session_obj.game_id
-                    active_case_data = cases_db[active_case_id]
-        finally:
-            if not db_session_obj:
-                db.close()
+        user = db.query(User).filter(User.email == from_email).first()
+        if user:
+            db_session_obj = (
+                db.query(GameSession)
+                .filter(GameSession.user_id == user.id, GameSession.status == "active")
+                .order_by(GameSession.started_at.desc())
+                .first()
+            )
+            if db_session_obj and db_session_obj.game_id in cases_db:
+                active_case_id = db_session_obj.game_id
+                active_case_data = cases_db[active_case_id]
     except Exception:
         pass  # DB no disponible (ej. QA agent), usar fallback
     
@@ -127,6 +124,8 @@ def director_process(state: GameState):
     
     # ── 3. SIN CASO IDENTIFICADO ────────────────────────────────────
     if not active_case_data:
+        if db:
+            db.close()
         return {
             "action_taken": "director_no_case",
             "ai_response": (
@@ -200,19 +199,15 @@ Briefing Original: {briefing}
         is_conclusive = verdict_tag.startswith("win") or verdict_tag == "lose"
         
         # ── 6. ACTUALIZAR DB ────────────────────────────────────────
-        if db_session_obj and is_conclusive:
+        if db_session_obj and is_conclusive and db:
             try:
                 db_session_obj.status = "completed"
                 db_session_obj.completed_at = datetime.now(timezone.utc)
                 db_session_obj.verdict = verdict_tag
-                db_session_obj.director_summary = ai_text_clean[:2000]  # Cap para seguridad
+                db_session_obj.director_summary = ai_text_clean[:2000]
                 db.commit()
             except Exception:
                 db.rollback()
-            finally:
-                db.close()
-        elif db_session_obj:
-            db.close()
         
         return {
             "messages": [response_msg],
@@ -220,15 +215,13 @@ Briefing Original: {briefing}
             "ai_response": ai_text_clean
         }
     except Exception as e:
-        if db_session_obj:
-            try:
-                db.close()
-            except Exception:
-                pass
         return {
             "action_taken": "director_error",
             "ai_response": f"[Error del Director: {str(e)}]"
         }
+    finally:
+        if db:
+            db.close()
 
 def moderator_process(state: GameState):
     """

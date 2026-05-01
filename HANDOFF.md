@@ -47,9 +47,8 @@
 ## 🔴 Problemas críticos pendientes
 
 ### Bug #2 — Inconsistencia SMTP_EMAIL vs SMTP_USER
-**Estado: PENDIENTE DE FIX TRIVIAL.**  
-`.env.example` línea 18 dice `SMTP_EMAIL=` pero todo el código (`mailer.py:13`, `imap_poller.py:27`) lee `SMTP_USER`. El `.env` real del propietario ya usa `SMTP_USER` y funciona.  
-**Fix:** Renombrar `SMTP_EMAIL` → `SMTP_USER` en `.env.example`. Es un cambio de una línea.
+**Estado: [RESUELTO - Antygravity - 2026-05-01]**  
+Renombrado `SMTP_EMAIL` → `SMTP_USER` en `.env.example`.
 
 ---
 
@@ -80,8 +79,8 @@ El `SqliteSaver` en `orchestrator.py:470-471` persiste toda la memoria en `langg
 **Fix futuro:** Agregar un cleanup job que borre checkpoints de sesiones cerradas.
 
 ### Bug #7 — CORS hardcodeado
-`main.py:46` tiene `allow_origins=["http://localhost:5173"]`. Está bien para desarrollo.  
-**Fix para producción:** Leer de variable de entorno `CORS_ORIGINS` (lista separada por comas).
+**Estado: [RESUELTO - Antygravity - 2026-05-01]**  
+`main.py` ahora lee `CORS_ORIGINS` de `.env` (lista separada por comas). Default: `http://localhost:5173,http://localhost:5174`. Variable documentada en `.env.example`.
 
 ### Bug #8 — Sin rate limiting
 No hay rate limiting por usuario. Un jugador podría enviar cientos de emails y disparar costos de OpenAI.  
@@ -97,16 +96,19 @@ No hay Dockerfile ni docker-compose. El setup es manual.
 
 ## 📋 Tareas para el siguiente agente
 
-Lista priorizada:
+Lista priorizada (ya completados por Antygravity marcados con ✅):
 
-1. **Fix #2 (trivial):** Renombrar `SMTP_EMAIL` → `SMTP_USER` en `.env.example`.
-2. **Evaluar moderador (#1):** Decidir si reimplementar con reglas (regex) o dejar en bypass. Consultar al propietario si hay dudas sobre el enfoque.
-3. **Parametrizar CORS (#7):** Mover `allow_origins` a variable de entorno.
-4. **Rate limiting (#8):** Implementar limitador básico por email del jugador.
-5. **Suite de tests (#9):** Convertir los scripts de `scripts/test_*.py` en tests pytest formales con fixtures.
-6. **Dockerizar (#10):** Crear Dockerfile + docker-compose para backend + frontend.
-7. **Limpieza de checkpoints (#6):** Job de cleanup para `langgraph_checkpoints.sqlite`.
-8. **Persistir processed_ids (#3):** Mover a SQLite o IMAP flags.
+1. ✅ ~~**Fix #2:** Renombrar `SMTP_EMAIL` → `SMTP_USER` en `.env.example`.~~
+2. ✅ ~~**Parametrizar CORS (#7):** Mover `allow_origins` a variable de entorno.~~
+3. ✅ ~~**Refactorizar DB sessions del Director:** Context managers para evitar connection leaks.~~
+4. ✅ ~~**Limpiar código muerto:** Línea 152 de `nudge_engine.py` (residuo de refactor).~~
+5. ✅ ~~**Generar `requirements.txt`:** Creado con dependencias reales del proyecto.~~
+6. **Evaluar moderador (#1):** Decidir si reimplementar con reglas (regex) o dejar en bypass. Consultar al propietario si hay dudas sobre el enfoque.
+7. **Rate limiting (#8):** Implementar limitador básico por email del jugador.
+8. **Suite de tests (#9):** Convertir los scripts de `scripts/test_*.py` en tests pytest formales con fixtures.
+9. **Dockerizar (#10):** Crear Dockerfile + docker-compose para backend + frontend.
+10. **Limpieza de checkpoints (#6):** Job de cleanup para `langgraph_checkpoints.sqlite`.
+11. **Persistir processed_ids (#3):** Mover a SQLite o IMAP flags.
 
 ---
 

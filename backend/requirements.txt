@@ -1,0 +1,27 @@
+# Expediente Abierto — Backend Dependencies
+# Instalar con: pip install -r requirements.txt
+
+# Web Framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# LLM & Orchestration
+langchain-core>=1.3.0
+langchain-openai>=0.3.0
+langgraph>=1.1.0
+langgraph-checkpoint>=4.0.0
+
+# Database
+SQLAlchemy>=2.0.0
+
+# Auth & Security
+PyJWT>=2.8.0
+
+# Email
+python-dotenv>=1.0.0
+
+# HTTP
+httpx>=0.28.0
+
+# Data validation (transitive via FastAPI, pinned for stability)
+pydantic>=2.7.0

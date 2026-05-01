@@ -149,7 +149,6 @@ def _process_session_nudge(db, session, now: datetime):
 
     # 5. Generar y encolar el nudge
     nudge_level = nudges_sent  # 0, 1, 2
-    user = db.query(db.query.__self__.query(type(session)).session.bind.__class__).first() if False else None
 
     # Obtener email del jugador
     from database.models import User
