@@ -99,6 +99,7 @@ def _process_session(session_id: int):
     db = SessionLocal()
     try:
         session = db.query(GameSession).filter(GameSession.id == session_id).first()
+        _log(f"session_id={session_id} — DB conectada OK.")
         if not session or session.status != "active":
             _log(f"session_id={session_id} no activa, skip.")
             return
@@ -203,6 +204,10 @@ def _process_session(session_id: int):
             )
             break  # Un solo evento por ciclo por sesión
 
+    except Exception as e:
+        import traceback
+        print(f"[EVENT] ERROR en _process_session(session_id={session_id}): {e}", flush=True)
+        print(traceback.format_exc(), flush=True)
     finally:
         db.close()
 
