@@ -101,11 +101,25 @@ docker compose up --build
 
 Lista priorizada:
 
-1. **Suite de tests pytest** — Convertir `scripts/test_*.py` en tests formales con `pytest` y fixtures. Prioridad: `test_time_guardian.py`, `test_vault.py`, `test_moderator.py`, `test_active_director.py`.
+1. ~~**Suite de tests pytest**~~ ✅ Completado por Claude Code. Ver `backend/tests/`.
 2. ~~**Dockerfile + docker-compose**~~ ✅ Completado por Claude Code.
-3. **Rate limiting en webhook HTTP** — Mismo mecanismo que el IMAP poller, aplicado al endpoint `POST /api/v1/webhook/inbound`.
-4. **Cleanup job de checkpoints LangGraph** — Job periódico (o en el delivery_worker) que borre checkpoints de sesiones con `status != "active"` del archivo `langgraph_checkpoints.sqlite`.
+3. ~~**Rate limiting en webhook HTTP**~~ ✅ Completado por Claude Code. `api/webhook.py` usa el mismo `_is_rate_limited` del IMAP poller.
+4. ~~**Cleanup job de checkpoints LangGraph**~~ ✅ Completado por Claude Code. `delivery_worker.py` limpia cada hora checkpoints de sesiones inactivas.
 5. **Vault: decidir estrategia de archivos** — Consultar al propietario si los archivos serán: (a) assets estáticos hosteados, (b) generados dinámicamente, o (c) links a Google Drive/S3. Hasta que se decida, dejar el metadata-only como está.
+
+### Cómo correr los tests
+
+```bash
+cd backend
+pytest tests/ -v
+```
+
+Tests disponibles:
+- `tests/test_time_guardian.py` — parsing de latencia, delays, horarios imposibles (sin LLM)
+- `tests/test_vault.py` — datos de casos, lookup de códigos, endpoint vault (sin LLM)
+- `tests/test_otp.py` — lockout OTP, reset de intentos, flujo de request (sin LLM)
+- `tests/test_rate_limiter.py` — ventana deslizante IMAP y webhook (sin LLM)
+- `tests/test_orchestrator_routing.py` — routing del grafo, carga de casos (sin LLM)
 
 ---
 
