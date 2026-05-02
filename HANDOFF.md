@@ -1,6 +1,6 @@
 # HANDOFF — Claude Code (Claude Sonnet) → Codex (OpenAI)
 
-**Fecha:** 2026-05-01 (actualizado)  
+**Fecha:** 2026-05-01 (cierre de turno)  
 **Agente saliente:** Claude Code (Claude Sonnet 4.6)  
 **Agente entrante:** Codex (OpenAI)  
 **Branch activa:** master
@@ -121,9 +121,19 @@ docker compose up --build
 
 ## 📋 Tareas para el siguiente agente (Codex)
 
+> **Estado del sistema al cierre del turno Claude Code:**
+> - Contenedores Docker corriendo en contexto `desktop-linux` (visible en Docker Desktop)
+> - Backend: `http://localhost:8001` ✅
+> - Frontend: `http://localhost:5173` ✅
+> - Event Engine verificado y funcionando: dispara `juan_se_presenta` correctamente en DEV_MODE
+> - Logs de debug granulares activos en `event_engine.py` — **limpiarlos antes de producción**
+> - `martes_3` tiene 3 eventos proactivos definidos y testeados
+> - Para reconstruir contenedores: `docker --context desktop-linux compose build && docker --context desktop-linux compose up -d`
+
 Lista priorizada:
 
-1. ~~**Suite de tests pytest**~~ ✅ Completado por Claude Code. Ver `backend/tests/`.
+1. **Limpiar logs de debug del Event Engine** — `core/event_engine.py` tiene logs granulares (paso 1, paso 2...) agregados para debugging. Reemplazar por logs concisos de producción antes de cualquier deploy.
+2. ~~**Suite de tests pytest**~~ ✅ Completado por Claude Code. Ver `backend/tests/`.
 2. ~~**Dockerfile + docker-compose**~~ ✅ Completado por Claude Code.
 3. ~~**Rate limiting en webhook HTTP**~~ ✅ Completado por Claude Code. `api/webhook.py` usa el mismo `_is_rate_limited` del IMAP poller.
 4. ~~**Cleanup job de checkpoints LangGraph**~~ ✅ Completado por Claude Code. `delivery_worker.py` limpia cada hora checkpoints de sesiones inactivas.
