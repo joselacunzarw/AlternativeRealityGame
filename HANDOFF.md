@@ -9,6 +9,20 @@
 
 ## ✅ Qué se hizo en este turno (actualizado)
 
+### Actualizacion posterior de Codex
+
+- **`core/event_engine.py`** - Logs de debug granulares removidos. Se conservaron logs operativos concisos para ciclo, disparo de eventos, warnings de datos invalidos y errores con stack trace.
+- **Vault con assets estaticos** - Infraestructura implementada de punta a punta:
+  - `backend/main.py` monta `backend/assets/` en `/assets`
+  - `api/vault.py` devuelve `file_url` cuando existe un archivo real en disco
+  - `frontend/src/components/Vault.jsx` muestra boton de descarga y resuelve URLs relativas contra el mismo backend configurado en `VITE_API_URL`
+  - `backend/.env.example` documenta `ASSETS_BASE_URL`
+  - `backend/assets/README.md` y carpetas por caso dejan preparada la estructura para que el propietario suba los archivos definitivos
+- **Suite de tests Vault ajustada** - `backend/tests/test_vault.py` ahora cubre `file_url` y `backend/tests/conftest.py` usa `StaticPool` para compartir la SQLite en memoria entre fixtures y requests del `TestClient`.
+- **Replies por email mas robustas** - `core/email_reply_parser.py` recorta texto citado y evita que personajes lean el historial reenviado como si fuera el mensaje nuevo del detective.
+- **Memoria aislada por sesion** - `core/conversation_threads.py` centraliza el calculo de `thread_id` y usa `thread_session_{session_id}_{char_alias}` para separar conversaciones entre casos del mismo jugador.
+- **Validacion manual de `martes_3` completada** - Flujo verificado con credenciales reales: OTP, inicio de caso, briefing, respuestas de Hernan y Secretaria, evento proactivo de Juan, Boveda y envio al Director.
+
 ### Director Proactivo — Event Engine
 
 - **`core/event_engine.py`** — Motor de eventos proactivos. Background task que corre cada 30 min (1 min en DEV_MODE). Para cada sesión activa evalúa si algún evento debe dispararse usando trigger combinado: tiempo transcurrido + evaluación LLM de condición narrativa. Genera el mensaje del personaje y lo encola en `ScheduledMessage`.
@@ -37,8 +51,10 @@
    - `completed_success` y `completed_fail` nunca se contaban (comparaban contra `"completed_success"` / `"completed_fail"` que el modelo nunca guarda). Ahora usan `status == "completed"` + campo `verdict` (`"win_*"` = éxito, `"lose"/"partial"` = fracaso).
    - `session_info` ahora incluye el campo `verdict` para que el frontend pueda mostrarlo.
 
-2. **Thread ID consistente webhook vs IMAP** — `api/webhook.py:27`
-   - El webhook usaba `thread_{from}_{to_email_completo}` y el IMAP usaba `thread_{from}_{char_alias}`. Ahora ambos usan el mismo formato: `thread_{from_email}_{char_alias}`. Conversaciones unificadas.
+2. **Thread ID consistente webhook vs IMAP** — `api/webhook.py` + `core/imap_poller.py`
+   - Ambos resuelven el `thread_id` con helper compartido.
+   - Formato principal nuevo: `thread_session_{session_id}_{char_alias}`.
+   - Esto aísla memoria LangGraph por sesión activa y evita arrastrar contexto entre expedientes distintos del mismo jugador.
 
 3. **requirements.txt completado** — `backend/requirements.txt`
    - Agregado `python-multipart>=0.0.9` (requerido por FastAPI para form data).
@@ -113,13 +129,13 @@ docker compose up --build
 - **Bug #1 [RESUELTO]** — `/game/start` usaba `req.user_email` del body para enviar el briefing, permitiendo enviar contenido a terceros. Ahora usa siempre `current_user.email`.
 - **Bug #2 [RESUELTO]** — `GameSession` se creaba sin `expires_at`. Ahora se puebla con `now + duration_limit_hours` del caso.
 - **Bug #3 [RESUELTO]** — El cleanup de checkpoints usaba patrón `thread_{email}_%` que borraba memoria de sesiones activas del mismo usuario. Ahora solo limpia emails sin ninguna sesión activa.
+- **Bug #4 [RESUELTO]** — La memoria LangGraph ya no se comparte entre casos distintos del mismo jugador. Webhook e IMAP ahora usan `thread_session_{session_id}_{char_alias}` y solo hacen fallback a formatos menos precisos fuera de una sesión activa.
 
 ### Documentación corregida (señalado por Codex):
 - El rate limiting del webhook HTTP **SÍ está implementado** (`api/webhook.py` tiene su propio `_is_rate_limited`). El contador es separado del de IMAP — el límite combinado es `RATE_LIMIT * 2` por canal. Esto es intencional para MVP; en producción unificar con Redis.
 
 ### Deuda activa:
-- **Vault sin archivos reales** — Decisión: assets estáticos. Infraestructura pendiente. Ver spec en sección de tareas.
-- **Logs de debug en Event Engine** — `core/event_engine.py` tiene logs granulares de depuración (paso 1, paso 2...). Limpiar antes de producción.
+- **Vault sin archivos reales** — La infraestructura ya está lista; faltan solamente los PDFs/ZIPs/imágenes/audios definitivos que debe subir el propietario/guionista en `backend/assets/<case_id>/`.
 
 ---
 
@@ -130,24 +146,26 @@ docker compose up --build
 > - Backend: `http://localhost:8001` ✅
 > - Frontend: `http://localhost:5173` ✅
 > - Event Engine verificado y funcionando: dispara `juan_se_presenta` correctamente en DEV_MODE
-> - Logs de debug granulares activos en `event_engine.py` — **limpiarlos antes de producción**
+> - Logs de `event_engine.py` ya limpiados y en modo operativo
 > - `martes_3` tiene 3 eventos proactivos definidos y testeados
+> - Memoria LangGraph aislada por sesion activa (`thread_session_{session_id}_{alias}`)
+> - Prueba manual end-to-end de `martes_3` completada con resultado correcto
 > - Para reconstruir contenedores: `docker --context desktop-linux compose build && docker --context desktop-linux compose up -d`
 
 Lista priorizada:
 
-1. **Limpiar logs de debug del Event Engine** — `core/event_engine.py` tiene logs granulares (paso 1, paso 2...) agregados para debugging. Reemplazar por logs concisos de producción antes de cualquier deploy.
+1. ~~**Limpiar logs de debug del Event Engine**~~ ✅ Completado por Codex. `core/event_engine.py` quedó con logs operativos de producción.
 2. ~~**Suite de tests pytest**~~ ✅ Completado por Claude Code. Ver `backend/tests/`.
 2. ~~**Dockerfile + docker-compose**~~ ✅ Completado por Claude Code.
 3. ~~**Rate limiting en webhook HTTP**~~ ✅ Completado por Claude Code. `api/webhook.py` tiene su propio contador `_is_rate_limited` en memoria — **separado** del de `imap_poller.py`. El límite efectivo es `RATE_LIMIT_PER_HOUR` por canal, no compartido. Para unificar en producción usar Redis.
 4. ~~**Cleanup job de checkpoints LangGraph**~~ ✅ Completado por Claude Code. `delivery_worker.py` limpia cada hora checkpoints de sesiones inactivas.
-5. **Vault: implementar assets estáticos** — Decisión tomada por el propietario: los archivos de evidencia serán assets estáticos. Implementación pendiente:
-   - Montar `backend/assets/` como ruta estática en FastAPI (`/assets`)
-   - `vault.py` debe retornar `file_url` además de metadata cuando el archivo existe en disco
-   - Frontend Vault debe mostrar botón de descarga cuando recibe `file_url`
-   - Agregar variable `ASSETS_BASE_URL` al `.env.example` para configurar dominio en producción
-   - Crear estructura de carpetas y `README` indicando qué archivos van en cada lugar
-   - Los archivos reales (PDFs, ZIPs, imágenes) los provee el propietario/guionista — no generarlos
+5. ~~**Vault: implementar assets estáticos**~~ ✅ Completado por Codex.
+   - Backend monta `/assets`
+   - `vault.py` devuelve `file_url` cuando el archivo existe
+   - Frontend muestra botón de descarga
+   - `.env.example` documenta `ASSETS_BASE_URL`
+   - `backend/assets/README.md` y carpetas base ya están en el repo
+   - Pendiente externo: el propietario/guionista debe subir los archivos reales
 
 ### Cómo correr los tests
 
@@ -158,7 +176,7 @@ pytest tests/ -v
 
 Tests disponibles:
 - `tests/test_time_guardian.py` — parsing de latencia, delays, horarios imposibles (sin LLM)
-- `tests/test_vault.py` — datos de casos, lookup de códigos, endpoint vault (sin LLM)
+- `tests/test_vault.py` — datos de casos, lookup de códigos, endpoint vault y `file_url` (sin LLM)
 - `tests/test_otp.py` — lockout OTP, reset de intentos, flujo de request (sin LLM)
 - `tests/test_rate_limiter.py` — ventana deslizante IMAP y webhook (sin LLM)
 - `tests/test_orchestrator_routing.py` — routing del grafo, carga de casos (sin LLM)
@@ -182,7 +200,7 @@ Todas las del turno anterior (Antygravity) siguen vigentes. Agregar:
 1. **Moderador en bypass** — Pospuesto por decisión del propietario. No implementar moderador LLM ni regex sin aprobación explícita.
 2. **OTP lockout en 5 intentos** — Aprobado. Si se quiere cambiar el límite, usar variable de entorno `OTP_MAX_ATTEMPTS` (actualmente hardcodeado, futuro refactor si hace falta).
 3. **Rate limit IMAP en memoria** — Intencional para v1. Si el servidor se reinicia, los contadores se resetean. Para v2 con tráfico real, mover a Redis o SQLite.
-4. **Thread ID formato `thread_{email}_{alias}`** — No cambiar. Es el contrato entre IMAP y webhook para compartir memoria LangGraph.
+4. **Thread ID formato `thread_session_{session_id}_{alias}`** — Mantener este contrato entre IMAP, webhook y cleanup. Solo usar fallbacks por `case_id` o `email` cuando no exista sesión activa.
 
 ---
 

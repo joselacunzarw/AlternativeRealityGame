@@ -8,7 +8,9 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from email.header import decode_header
 from dotenv import load_dotenv
+from core.conversation_threads import resolve_inbound_thread_id
 from core.orchestrator import app_graph
+from core.email_reply_parser import extract_visible_reply
 from langchain_core.messages import HumanMessage
 from core.mailer import send_smtp_email
 
@@ -133,6 +135,8 @@ async def start_imap_poller():
                                 if target_character == SMTP_USER:
                                     logging.warning(f"[{num}] Ignorando correo porque no tiene @alias en la primera línea (Prevención de Infinite Loop).")
                                     continue
+
+                                text_body = extract_visible_reply(text_body)
                                     
                                 if _is_rate_limited(clean_from):
                                     logging.warning(f"[{num}] Rate limit alcanzado para {clean_from}. Correo descartado.")
@@ -151,11 +155,17 @@ async def start_imap_poller():
                                     "messages": [human_msg]
                                 }
 
-                                # Aislar hilos: un hilo por par (Usuario, Personaje)
-                                char_alias = target_character.split("@")[0]
-                                thread_id = f"thread_{clean_from}_{char_alias}"
+                                thread_id = resolve_inbound_thread_id(
+                                    from_email=clean_from,
+                                    to_email=target_character,
+                                    subject=subject,
+                                    text_content=text_body,
+                                )
                                 
-                                logging.info(f"Invocando grafo para {clean_from} -> {char_alias} (Thread: {thread_id})")
+                                logging.info(
+                                    f"Invocando grafo para {clean_from} -> {target_character} "
+                                    f"(Thread: {thread_id})"
+                                )
                                 result = app_graph.invoke(init_state, config={"configurable": {"thread_id": thread_id}})
                                 
                                 action = result.get("action_taken", "")

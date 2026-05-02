@@ -6,7 +6,11 @@
  * - Lanza un error con el detalle del backend para errores 4xx/5xx.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
+export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
+
+export function resolveApiUrl(path) {
+  return new URL(path, API_URL).toString();
+}
 
 export async function authFetch(path, options = {}) {
   const token = localStorage.getItem('token');
@@ -23,7 +27,7 @@ export async function authFetch(path, options = {}) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json";
   }
   
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(resolveApiUrl(path), {
     ...options,
     headers,
   });

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Usar una DB en memoria para tests — nunca toca la DB real
 os.environ.setdefault("JWT_SECRET", "test-secret-key-for-pytest-only")
@@ -16,11 +17,15 @@ from database.database import Base, get_db
 from database.models import User, GameSession
 
 
-TEST_DB_URL = "sqlite:///:memory:"
+TEST_DB_URL = "sqlite://"
 
 @pytest.fixture(scope="session")
 def test_engine():
-    engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+    engine = create_engine(
+        TEST_DB_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     yield engine
     engine.dispose()

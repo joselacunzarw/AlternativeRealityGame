@@ -26,9 +26,9 @@ def _cleanup_checkpoints():
     Elimina checkpoints LangGraph de sesiones que ya no están activas.
 
     Estrategia:
-      1. Lee los thread_ids de sesiones completadas/abandonadas desde la app DB.
-      2. Los thread_ids tienen formato 'thread_{email}_{alias}'.
-      3. Borra de las tablas 'checkpoints' y 'writes' del archivo SQLite de LangGraph.
+      1. Borra por session_id los hilos del formato nuevo: 'thread_session_{session_id}_{alias}'.
+      2. Conserva una limpieza de compatibilidad para hilos legacy por email solo si
+         el usuario ya no tiene ninguna sesión activa.
     """
     checkpoint_path = os.getenv("DB_CHECKPOINT_PATH", "langgraph_checkpoints.sqlite")
 
@@ -36,12 +36,17 @@ def _cleanup_checkpoints():
         return
 
     try:
+        from core.conversation_threads import (
+            build_fallback_email_thread_pattern,
+            build_legacy_email_thread_pattern,
+            build_session_thread_pattern,
+        )
         from database.database import SessionLocal
         from database.models import GameSession, User
 
         db = SessionLocal()
         try:
-            # Emails con al menos una sesión activa — NO tocar sus checkpoints.
+            # Emails con al menos una sesión activa.
             active_emails = {
                 email
                 for _, email in db.query(GameSession, User.email)
@@ -50,7 +55,6 @@ def _cleanup_checkpoints():
                 .all()
             }
 
-            # Solo limpiar checkpoints de emails que NO tienen ninguna sesión activa.
             inactive = (
                 db.query(GameSession, User.email)
                 .join(User, GameSession.user_id == User.id)
@@ -61,19 +65,32 @@ def _cleanup_checkpoints():
             if not inactive:
                 return
 
-            # Filtrar emails que tienen sesión activa para no borrar su memoria.
-            thread_ids_to_delete = [
-                f"thread_{email}_%"
+            thread_patterns_to_delete = {
+                build_session_thread_pattern(session.id)
+                for session, _ in inactive
+            }
+
+            # Compatibilidad con el formato histórico por email.
+            legacy_email_patterns = {
+                build_legacy_email_thread_pattern(email)
                 for _, email in inactive
                 if email not in active_emails
-            ]
+            }
+            fallback_email_patterns = {
+                build_fallback_email_thread_pattern(email)
+                for _, email in inactive
+                if email not in active_emails
+            }
+            thread_patterns_to_delete.update(legacy_email_patterns)
+            thread_patterns_to_delete.update(fallback_email_patterns)
 
             conn = sqlite3.connect(checkpoint_path)
             try:
                 cur = conn.cursor()
                 deleted = 0
-                for pattern in thread_ids_to_delete:
+                for pattern in thread_patterns_to_delete:
                     cur.execute("DELETE FROM checkpoints WHERE thread_id LIKE ?", (pattern,))
+                    deleted += cur.rowcount
                     cur.execute("DELETE FROM writes WHERE thread_id LIKE ?", (pattern,))
                     deleted += cur.rowcount
                 conn.commit()

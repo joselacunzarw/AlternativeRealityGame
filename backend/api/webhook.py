@@ -2,8 +2,10 @@ import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
+from core.conversation_threads import resolve_inbound_thread_id
 from models.schemas import InboundEmailPayload, AgentResponse
 from core.orchestrator import app_graph, GameState
+from core.email_reply_parser import extract_visible_reply
 from langchain_core.messages import HumanMessage
 
 router = APIRouter()
@@ -33,20 +35,24 @@ async def receive_inbound_email(payload: InboundEmailPayload):
             detail="Límite de mensajes por hora alcanzado. Intente más tarde."
         )
 
-    email_body = f"Asunto: {payload.subject}\n\nCuerpo:\n{payload.text}"
+    clean_text = extract_visible_reply(payload.text)
+    email_body = f"Asunto: {payload.subject}\n\nCuerpo:\n{clean_text}"
     human_msg = HumanMessage(content=email_body)
 
     initial_state = {
         "from_email": payload.from_email,
         "to_email": payload.to_email,
         "subject": payload.subject,
-        "text_content": payload.text,
+        "text_content": clean_text,
         "messages": [human_msg]
     }
 
-    # Mismo formato que imap_poller: thread_{from_email}_{char_alias}
-    char_alias = payload.to_email.split("@")[0].lower()
-    thread_id = f"thread_{payload.from_email}_{char_alias}"
+    thread_id = resolve_inbound_thread_id(
+        from_email=payload.from_email,
+        to_email=payload.to_email,
+        subject=payload.subject,
+        text_content=clean_text,
+    )
     config = {"configurable": {"thread_id": thread_id}}
 
     result = app_graph.invoke(initial_state, config=config)

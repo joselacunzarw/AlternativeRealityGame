@@ -4,9 +4,11 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import asyncio
 import os
+from pathlib import Path
 from api.webhook import router as webhook_router
 from api.cases import router as cases_router
 from api.users import router as users_router
@@ -52,6 +54,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+assets_dir = Path(__file__).resolve().parent / "assets"
+assets_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 app.include_router(webhook_router, prefix="/api/v1")
 app.include_router(cases_router, prefix="/api/v1")
