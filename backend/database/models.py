@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Boolean
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from database.database import Base
@@ -74,4 +84,38 @@ class ScheduledMessage(Base):
     is_delivered = Column(Boolean, default=False)  # Ya fue movido a Message
     
     session = relationship("GameSession")
+
+
+class ProcessedInboundMessage(Base):
+    """
+    Marca mensajes entrantes ya vistos por el sistema para evitar reprocesarlos
+    cuando el servidor se reinicia.
+    """
+    __tablename__ = "processed_inbound_messages"
+    __table_args__ = (
+        UniqueConstraint("source", "external_id", name="uq_processed_inbound_source_external"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    source = Column(String, nullable=False, index=True)  # ej: "imap_uid"
+    external_id = Column(String, nullable=False, index=True)  # UID del proveedor
+    from_email = Column(String, nullable=True)
+    subject = Column(String, nullable=True)
+    processed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class RateLimitEvent(Base):
+    """
+    Eventos persistidos para aplicar rate limiting aunque el proceso se reinicie.
+    El scope permite mantener presupuestos separados por canal (imap/webhook).
+    """
+    __tablename__ = "rate_limit_events"
+    __table_args__ = (
+        Index("ix_rate_limit_scope_actor_created", "scope", "actor_email", "created_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    scope = Column(String, nullable=False, index=True)
+    actor_email = Column(String, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 

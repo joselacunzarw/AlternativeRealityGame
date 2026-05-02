@@ -21,6 +21,7 @@
 - **Suite de tests Vault ajustada** - `backend/tests/test_vault.py` ahora cubre `file_url` y `backend/tests/conftest.py` usa `StaticPool` para compartir la SQLite en memoria entre fixtures y requests del `TestClient`.
 - **Replies por email mas robustas** - `core/email_reply_parser.py` recorta texto citado y evita que personajes lean el historial reenviado como si fuera el mensaje nuevo del detective.
 - **Memoria aislada por sesion** - `core/conversation_threads.py` centraliza el calculo de `thread_id` y usa `thread_session_{session_id}_{char_alias}` para separar conversaciones entre casos del mismo jugador.
+- **Estado entrante persistente** - `core/inbound_runtime_state.py` persiste en SQLite los UID ya vistos del IMAP y los eventos de rate limiting por canal, para que reiniciar el proceso no resetee ni duplicados ni contadores.
 - **Validacion manual de `martes_3` completada** - Flujo verificado con credenciales reales: OTP, inicio de caso, briefing, respuestas de Hernan y Secretaria, evento proactivo de Juan, Boveda y envio al Director.
 
 ### Director Proactivo — Event Engine
@@ -122,14 +123,13 @@ docker compose up --build
 
 ## 🟡 Deuda técnica conocida
 
-### Heredada de Antygravity (sin cambios):
-- **Bug #13** — `processed_ids` del IMAP vive en memoria (bajo riesgo en la práctica).
-
 ### Corregidos en este turno (que el handoff original declaró incorrectamente como pendientes o cerrados):
 - **Bug #1 [RESUELTO]** — `/game/start` usaba `req.user_email` del body para enviar el briefing, permitiendo enviar contenido a terceros. Ahora usa siempre `current_user.email`.
 - **Bug #2 [RESUELTO]** — `GameSession` se creaba sin `expires_at`. Ahora se puebla con `now + duration_limit_hours` del caso.
 - **Bug #3 [RESUELTO]** — El cleanup de checkpoints usaba patrón `thread_{email}_%` que borraba memoria de sesiones activas del mismo usuario. Ahora solo limpia emails sin ninguna sesión activa.
 - **Bug #4 [RESUELTO]** — La memoria LangGraph ya no se comparte entre casos distintos del mismo jugador. Webhook e IMAP ahora usan `thread_session_{session_id}_{char_alias}` y solo hacen fallback a formatos menos precisos fuera de una sesión activa.
+- **Bug #5 [RESUELTO]** — `processed_ids` del IMAP ya no vive en memoria de proceso. Ahora el poller usa UID persistentes en la tabla `processed_inbound_messages`.
+- **Bug #6 [RESUELTO]** — El rate limiting de IMAP/webhook ya no depende de diccionarios en memoria. Ahora persiste eventos en `rate_limit_events` manteniendo presupuesto separado por canal.
 
 ### Documentación corregida (señalado por Codex):
 - El rate limiting del webhook HTTP **SÍ está implementado** (`api/webhook.py` tiene su propio `_is_rate_limited`). El contador es separado del de IMAP — el límite combinado es `RATE_LIMIT * 2` por canal. Esto es intencional para MVP; en producción unificar con Redis.
@@ -179,6 +179,7 @@ Tests disponibles:
 - `tests/test_vault.py` — datos de casos, lookup de códigos, endpoint vault y `file_url` (sin LLM)
 - `tests/test_otp.py` — lockout OTP, reset de intentos, flujo de request (sin LLM)
 - `tests/test_rate_limiter.py` — ventana deslizante IMAP y webhook (sin LLM)
+- `tests/test_inbound_runtime_state.py` — persistencia de UIDs IMAP y helpers de runtime state (sin LLM)
 - `tests/test_orchestrator_routing.py` — routing del grafo, carga de casos (sin LLM)
 
 ---
@@ -199,7 +200,7 @@ Todas las del turno anterior (Antygravity) siguen vigentes. Agregar:
 
 1. **Moderador en bypass** — Pospuesto por decisión del propietario. No implementar moderador LLM ni regex sin aprobación explícita.
 2. **OTP lockout en 5 intentos** — Aprobado. Si se quiere cambiar el límite, usar variable de entorno `OTP_MAX_ATTEMPTS` (actualmente hardcodeado, futuro refactor si hace falta).
-3. **Rate limit IMAP en memoria** — Intencional para v1. Si el servidor se reinicia, los contadores se resetean. Para v2 con tráfico real, mover a Redis o SQLite.
+3. **Rate limit persistente en SQLite** — Mantiene presupuesto separado por canal (`imap`/`webhook`) y sobrevive a reinicios. Si en producción aparece volumen alto, mover a Redis.
 4. **Thread ID formato `thread_session_{session_id}_{alias}`** — Mantener este contrato entre IMAP, webhook y cleanup. Solo usar fallbacks por `case_id` o `email` cuando no exista sesión activa.
 
 ---
