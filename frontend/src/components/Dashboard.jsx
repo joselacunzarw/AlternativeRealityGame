@@ -26,7 +26,23 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadCases();
+    let isMounted = true;
+    authFetch('/api/v1/cases')
+      .then(data => {
+        if (!isMounted) return;
+        setCasos(data.cases || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        console.error("Error cargando casos:", err);
+        setErrorMsg(err.message);
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const activeCase = casos.find(c => c.status === 'active');

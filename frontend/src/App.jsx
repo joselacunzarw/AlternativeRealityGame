@@ -7,6 +7,7 @@ import LandingPage from './components/LandingPage'
 import Dashboard from './components/Dashboard'
 import Vault from './components/Vault'
 import Profile from './components/Profile'
+import Operations from './components/Operations'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Navigation() {
@@ -33,6 +34,7 @@ function Navigation() {
         <Link to="/dashboard" className={location.pathname === '/dashboard' ? 'active' : ''}>Despacho</Link>
         <Link to="/vault" className={location.pathname === '/vault' ? 'active' : ''}>Bóveda</Link>
         <Link to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>Legajo</Link>
+        <Link to="/operations" className={location.pathname === '/operations' ? 'active' : ''}>Operaciones</Link>
         {isLoggedIn && (
           <a onClick={handleLogout} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <LogOut size={12} /> Salir
@@ -52,6 +54,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/vault" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
+        <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   )

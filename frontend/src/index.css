@@ -323,6 +323,8 @@ h3 { font-size: 1.2rem; }
 .nav-links {
   display: flex;
   gap: var(--space-xl);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .nav-links a {

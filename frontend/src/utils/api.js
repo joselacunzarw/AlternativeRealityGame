@@ -2,7 +2,8 @@
  * authFetch — Wrapper de fetch que maneja JWT y sesiones expiradas.
  * 
  * - Inyecta el header Authorization automáticamente.
- * - Si el backend responde 401/403, limpia el token y redirige al login.
+ * - Si el backend responde 401, limpia el token y redirige al login.
+ * - Si responde 403, conserva la sesiÃ³n y deja que la pantalla muestre el permiso faltante.
  * - Lanza un error con el detalle del backend para errores 4xx/5xx.
  */
 
@@ -33,7 +34,7 @@ export async function authFetch(path, options = {}) {
   });
   
   // Sesión expirada o token inválido
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('userEmail');
     window.location.href = '/';
