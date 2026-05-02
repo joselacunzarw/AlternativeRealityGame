@@ -139,7 +139,7 @@ Lista priorizada:
 1. **Limpiar logs de debug del Event Engine** — `core/event_engine.py` tiene logs granulares (paso 1, paso 2...) agregados para debugging. Reemplazar por logs concisos de producción antes de cualquier deploy.
 2. ~~**Suite de tests pytest**~~ ✅ Completado por Claude Code. Ver `backend/tests/`.
 2. ~~**Dockerfile + docker-compose**~~ ✅ Completado por Claude Code.
-3. ~~**Rate limiting en webhook HTTP**~~ ✅ Completado por Claude Code. `api/webhook.py` usa el mismo `_is_rate_limited` del IMAP poller.
+3. ~~**Rate limiting en webhook HTTP**~~ ✅ Completado por Claude Code. `api/webhook.py` tiene su propio contador `_is_rate_limited` en memoria — **separado** del de `imap_poller.py`. El límite efectivo es `RATE_LIMIT_PER_HOUR` por canal, no compartido. Para unificar en producción usar Redis.
 4. ~~**Cleanup job de checkpoints LangGraph**~~ ✅ Completado por Claude Code. `delivery_worker.py` limpia cada hora checkpoints de sesiones inactivas.
 5. **Vault: implementar assets estáticos** — Decisión tomada por el propietario: los archivos de evidencia serán assets estáticos. Implementación pendiente:
    - Montar `backend/assets/` como ruta estática en FastAPI (`/assets`)

@@ -10,8 +10,6 @@ export default function Dashboard() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showWarningModal, setShowWarningModal] = useState(null);
   
-  const userEmail = localStorage.getItem('userEmail');
-
   const loadCases = () => {
     setLoading(true);
     setErrorMsg("");
