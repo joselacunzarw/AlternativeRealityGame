@@ -51,6 +51,21 @@ python -m uvicorn main:app --port 8001
 
 El servidor arranca con tres workers en background: IMAP poller, Delivery Worker y Nudge Engine.
 
+### Validar casos antes de subir cambios
+
+```bash
+cd backend
+python scripts/validate_cases.py
+```
+
+El validador revisa:
+- schema minimo de cada JSON
+- referencias del briefing a personajes reales
+- eventos proactivos y aliases existentes
+- tipos de evidencia de Vault
+- coherencia basica de URLs `archivos.expedienteabierto.com`
+- existencia de la carpeta `backend/assets/<case_id>/`
+
 ### Frontend
 
 ```bash

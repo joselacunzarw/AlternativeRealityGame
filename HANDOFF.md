@@ -167,6 +167,16 @@ Lista priorizada:
    - `backend/assets/README.md` y carpetas base ya están en el repo
    - Pendiente externo: el propietario/guionista debe subir los archivos reales
 
+### Roadmap de features
+
+1. ~~**Lint + validador de casos**~~ ✅ Completado por Codex. Script `backend/scripts/validate_cases.py` + modulo `core/case_validator.py` + tests de repo y fixtures invalidas.
+2. **Panel operativo mínimo** — Ver sesiones activas, mensajes en cola, eventos disparados, rate limits y errores.
+3. **Notebook del detective** — Hipotesis, personajes, fechas y claves de Vault en frontend.
+4. **Mapa de relaciones** — Visualizacion de personajes, pistas y documentos.
+5. **Nudges inteligentes** — Ayuda diegetica basada en progreso real del jugador.
+6. **Estados emocionales de personajes** — Confianza, paranoia, urgencia y variaciones de tono.
+7. **Finales mas ramificados** — Mas resoluciones y epilogos segun decisiones y pruebas.
+
 ### Cómo correr los tests
 
 ```bash
@@ -180,6 +190,7 @@ Tests disponibles:
 - `tests/test_otp.py` — lockout OTP, reset de intentos, flujo de request (sin LLM)
 - `tests/test_rate_limiter.py` — ventana deslizante IMAP y webhook (sin LLM)
 - `tests/test_inbound_runtime_state.py` — persistencia de UIDs IMAP y helpers de runtime state (sin LLM)
+- `tests/test_case_validator.py` — lint estructural de casos, referencias internas y URLs de archivos (sin LLM)
 - `tests/test_orchestrator_routing.py` — routing del grafo, carga de casos (sin LLM)
 
 ---
