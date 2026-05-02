@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard'
 import Vault from './components/Vault'
 import Profile from './components/Profile'
 import Operations from './components/Operations'
+import Notebook from './components/Notebook'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function Navigation() {
@@ -32,6 +33,7 @@ function Navigation() {
       
       <div className="nav-links">
         <Link to="/dashboard" className={location.pathname === '/dashboard' ? 'active' : ''}>Despacho</Link>
+        <Link to="/notebook" className={location.pathname === '/notebook' ? 'active' : ''}>Notebook</Link>
         <Link to="/vault" className={location.pathname === '/vault' ? 'active' : ''}>Bóveda</Link>
         <Link to="/profile" className={location.pathname === '/profile' ? 'active' : ''}>Legajo</Link>
         <Link to="/operations" className={location.pathname === '/operations' ? 'active' : ''}>Operaciones</Link>
@@ -52,6 +54,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/notebook" element={<ProtectedRoute><Notebook /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/vault" element={<ProtectedRoute><Vault /></ProtectedRoute>} />
         <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />

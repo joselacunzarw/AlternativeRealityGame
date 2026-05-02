@@ -25,10 +25,14 @@ Motor de IA conversacional para un juego de realidad alternativa (ARG) de detect
 | `api/cases.py` | Catálogo de casos e inicio de partida (transacción atómica: rollback si el email falla). |
 | `api/users.py` | Auth OTP passwordless + perfil del detective con historial de casos. |
 | `api/vault.py` | Bóveda Forense: desbloqueo de evidencia con claves obtenidas en el juego. |
+| `api/notebook.py` | Notebook del detective: notas, sospechosos, fechas y codigos por sesion. |
+| `api/ops.py` | Panel operativo read-only protegido por JWT + allowlist. |
 
 ### Frontend (React + Vite)
 - **Glassmorphism UI**: Paneles de cristal, tipografía Fira Code, paleta neón.
 - **Bóveda Forense**: Componente de desencriptación de evidencia.
+- **Notebook del Detective**: Entradas persistentes por sesion para organizar la investigacion.
+- **Panel Operativo**: Vista read-only para monitorear sesiones, cola, eventos, inbound y rate limits.
 - **ProtectedRoute**: Navegación segura con JWT.
 
 ## Configuración Inicial
@@ -49,7 +53,7 @@ cp .env.example .env
 python -m uvicorn main:app --port 8001
 ```
 
-El servidor arranca con tres workers en background: IMAP poller, Delivery Worker y Nudge Engine.
+El servidor arranca con cuatro workers en background: IMAP poller, Delivery Worker, Nudge Engine y Event Engine.
 
 ### Validar casos antes de subir cambios
 
@@ -84,6 +88,7 @@ npm run dev
 | `SMTP_USER` | Email de Gmail del sistema (ej: `agencia@gmail.com`). |
 | `SMTP_APP_PASSWORD` | Contraseña de aplicación de Gmail (no la contraseña normal). |
 | `DEV_MODE` | `true` = respuestas inmediatas sin delay. `false` = Time Guardian activo. |
+| `OPS_EMAIL_ALLOWLIST` | Opcional. Emails autorizados a ver `/operations` y `/api/v1/ops/*`. |
 
 ## Cómo jugar (flujo básico)
 

@@ -15,6 +15,7 @@ os.environ.setdefault("DEV_MODE", "true")
 
 from database.database import Base, get_db
 from database.models import (
+    DetectiveNotebookEntry,
     GameSession,
     ProcessedInboundMessage,
     RateLimitEvent,
@@ -40,6 +41,7 @@ def test_engine():
 def db_session(test_engine):
     TestingSession = sessionmaker(bind=test_engine)
     session = TestingSession()
+    session.query(DetectiveNotebookEntry).delete(synchronize_session=False)
     session.query(ProcessedInboundMessage).delete(synchronize_session=False)
     session.query(RateLimitEvent).delete(synchronize_session=False)
     session.commit()

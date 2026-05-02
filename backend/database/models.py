@@ -119,3 +119,30 @@ class RateLimitEvent(Base):
     actor_email = Column(String, nullable=False, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
+
+class DetectiveNotebookEntry(Base):
+    """
+    Entradas persistentes del cuaderno del detective.
+    Pertenecen a un usuario y a una sesion para evitar cruces entre partidas.
+    """
+    __tablename__ = "detective_notebook_entries"
+    __table_args__ = (
+        Index("ix_notebook_user_session_type", "user_id", "session_id", "entry_type"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    session_id = Column(Integer, ForeignKey("game_sessions.id"), nullable=False, index=True)
+    entry_type = Column(String, nullable=False, index=True)  # note, suspect, timeline, vault_code
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+    user = relationship("User")
+    session = relationship("GameSession")
