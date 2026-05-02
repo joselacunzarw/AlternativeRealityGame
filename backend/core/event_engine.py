@@ -117,6 +117,7 @@ def _process_session(session_id: int):
         _log(f"session_id={session_id} caso='{session.game_id}' — evaluando {len(proactive_events)} evento(s).")
 
         now = datetime.now(timezone.utc)
+        _log(f"session_id={session_id} paso 1: calculando now OK.")
 
         # ── 1. VERIFICAR MÍNIMO ENTRE EVENTOS ───────────────────────────
         last_fired = (
@@ -125,12 +126,14 @@ def _process_session(session_id: int):
             .order_by(FiredEvent.fired_at.desc())
             .first()
         )
+        _log(f"session_id={session_id} paso 2: last_fired={last_fired}.")
         if last_fired:
             last_fired_at = last_fired.fired_at
             if last_fired_at.tzinfo is None:
                 last_fired_at = last_fired_at.replace(tzinfo=timezone.utc)
             hours_since_last = (now - last_fired_at).total_seconds() / 3600
             if hours_since_last < MIN_HOURS_BETWEEN_EVENTS:
+                _log(f"session_id={session_id} mínimo entre eventos no alcanzado ({hours_since_last:.2f}h < {MIN_HOURS_BETWEEN_EVENTS}h), skip.")
                 return
 
         # ── 2. OBTENER HISTORIAL DE LA SESIÓN ───────────────────────────
@@ -140,9 +143,10 @@ def _process_session(session_id: int):
             .order_by(Message.sent_at.asc())
             .all()
         )
+        _log(f"session_id={session_id} paso 3: {len(messages)} mensajes en historial.")
         history_text = "\n".join([
             f"{'Detective' if _is_player_message(msg, session, db) else msg.from_email}: {msg.body[:300]}"
-            for msg in messages[-20:]  # Últimos 20 mensajes
+            for msg in messages[-20:]
         ])
 
         # ── 3. EVALUAR CADA EVENTO ───────────────────────────────────────
@@ -150,11 +154,13 @@ def _process_session(session_id: int):
         if started_at.tzinfo is None:
             started_at = started_at.replace(tzinfo=timezone.utc)
         hours_since_start = (now - started_at).total_seconds() / 3600
+        _log(f"session_id={session_id} paso 4: {hours_since_start:.3f}h desde inicio.")
 
         already_fired_ids = {
             fe.event_id
             for fe in db.query(FiredEvent).filter(FiredEvent.session_id == session_id).all()
         }
+        _log(f"session_id={session_id} paso 5: fired_ids={already_fired_ids}.")
 
         for event in proactive_events:
             event_id = event.get("id")
