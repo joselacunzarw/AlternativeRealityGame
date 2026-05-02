@@ -98,24 +98,28 @@ docker compose up --build
 
 ## 🔴 Problemas críticos pendientes
 
-**Ninguno** de los issues marcados como 🔴 en el turno anterior queda sin resolver tras este turno, excepto:
+- **Moderador desactivado** — Pospuesto por decisión del propietario. No reactivar sin aprobación.
 
-- **Moderador desactivado (#3)** — Pospuesto por decisión del propietario. Ver sección de decisiones.
+> **Nota:** Codex detectó en revisión estática que el turno anterior declaró erróneamente "ningún crítico pendiente". Los bugs #1, #2 y #3 abajo fueron corregidos en un commit posterior al handoff original.
 
 ---
 
 ## 🟡 Deuda técnica conocida
 
 ### Heredada de Antygravity (sin cambios):
-- **Bug #6** — Memoria LangGraph (`langgraph_checkpoints.sqlite`) crece sin cleanup.
-- **Bug #8** — Rate limiting aplicado solo al IMAP. Si se usa el webhook HTTP, no hay rate limit ahí.
-- **Bug #9** — Sin suite de tests pytest formal.
-- **Bug #10** — Sin Docker/docker-compose.
 - **Bug #13** — `processed_ids` del IMAP vive en memoria (bajo riesgo en la práctica).
 
-### Nueva deuda detectada en este turno:
-- **Vault sin archivos reales**: `vault.py` devuelve metadata (título, tipo, descripción) pero las URLs de archivos en los system_prompts (`https://archivos.expedienteabierto.com/caso3/...`) no existen. La mecánica está a medio terminar. El frontend muestra "ACCESO CONCEDIDO" correctamente pero no hay nada descargable.
-- **Rate limiting del webhook HTTP**: `api/webhook.py` no tiene rate limiting. Si se expone públicamente, podría ser abusado.
+### Corregidos en este turno (que el handoff original declaró incorrectamente como pendientes o cerrados):
+- **Bug #1 [RESUELTO]** — `/game/start` usaba `req.user_email` del body para enviar el briefing, permitiendo enviar contenido a terceros. Ahora usa siempre `current_user.email`.
+- **Bug #2 [RESUELTO]** — `GameSession` se creaba sin `expires_at`. Ahora se puebla con `now + duration_limit_hours` del caso.
+- **Bug #3 [RESUELTO]** — El cleanup de checkpoints usaba patrón `thread_{email}_%` que borraba memoria de sesiones activas del mismo usuario. Ahora solo limpia emails sin ninguna sesión activa.
+
+### Documentación corregida (señalado por Codex):
+- El rate limiting del webhook HTTP **SÍ está implementado** (`api/webhook.py` tiene su propio `_is_rate_limited`). El contador es separado del de IMAP — el límite combinado es `RATE_LIMIT * 2` por canal. Esto es intencional para MVP; en producción unificar con Redis.
+
+### Deuda activa:
+- **Vault sin archivos reales** — Decisión: assets estáticos. Infraestructura pendiente. Ver spec en sección de tareas.
+- **Logs de debug en Event Engine** — `core/event_engine.py` tiene logs granulares de depuración (paso 1, paso 2...). Limpiar antes de producción.
 
 ---
 

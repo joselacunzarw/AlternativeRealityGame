@@ -39,7 +39,7 @@ export default function Dashboard() {
     setErrorMsg("");
     authFetch('/api/v1/game/start', {
       method: "POST",
-      body: JSON.stringify({ user_email: userEmail, case_id: caseId })
+      body: JSON.stringify({ case_id: caseId })
     })
     .then(data => {
       setAlertMsg(data.message || "Caso iniciado");

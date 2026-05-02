@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
 from core.orchestrator import cases_db
 from database.database import get_db
 from database.models import User, GameSession
@@ -10,12 +11,12 @@ from core.dependencies import get_current_user
 router = APIRouter()
 
 class StartGameRequest(BaseModel):
-    user_email: str
     case_id: str
+    # user_email eliminado: el destinatario del briefing es siempre current_user.email.
+    # Aceptarlo desde el body permitía enviar contenido a terceros sin autorización.
 
 @router.get("/cases")
 async def get_cases(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Traer todos los game sessions de este usuario autenticado
     user_sessions = {}
     sessions = db.query(GameSession).filter(GameSession.user_id == current_user.id).all()
     for s in sessions:
@@ -38,43 +39,46 @@ async def start_case(req: StartGameRequest, current_user: User = Depends(get_cur
     cdata = cases_db.get(req.case_id)
     if not cdata:
         raise HTTPException(status_code=404, detail="Caso inexistente.")
-        
-    user = current_user
 
     # --- 1. PREPARAR CAMBIOS EN DB (SIN COMMIT) ---
-    active_session = db.query(GameSession).filter(GameSession.user_id == user.id, GameSession.status == "active").first()
+    active_session = db.query(GameSession).filter(
+        GameSession.user_id == current_user.id,
+        GameSession.status == "active"
+    ).first()
     if active_session:
         active_session.status = "abandonado"
 
-    session = GameSession(user_id=user.id, game_id=req.case_id, status="active")
+    duration_hours = cdata.get("duration_limit_hours", 72)
+    session = GameSession(
+        user_id=current_user.id,
+        game_id=req.case_id,
+        status="active",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=duration_hours)
+    )
     db.add(session)
-    # Flush envía los cambios a la DB para obtener IDs, pero NO hace commit.
-    # Si algo falla después, el rollback deshace todo.
     db.flush()
-    
-    # --- 2. INTENTAR ENVÍO DE MAIL ---
+
+    # --- 2. INTENTAR ENVÍO DE MAIL (siempre al usuario autenticado) ---
     case_title = cdata.get("title", "Expediente")
     briefing = cdata.get("briefing_intro", "Nuevo caso asignado.")
-    
+
     mail_subject = f"CASO ABIERTO: {case_title} || Expediente Abierto"
     mail_body = f"DETECTIVE:\n\nLe han asignado este expediente. Por favor, lea los detalles.\n\n{briefing}"
-    
-    mail_sent = send_smtp_email(req.user_email, mail_subject, mail_body)
-    
+
+    mail_sent = send_smtp_email(current_user.email, mail_subject, mail_body)
+
     if not mail_sent:
-        # --- ROLLBACK: El mail falló, deshacemos TODO ---
         db.rollback()
         raise HTTPException(
             status_code=502,
             detail="No se pudo enviar el correo de briefing. El caso NO fue iniciado. Verifica la configuración SMTP."
         )
-    
+
     # --- 3. COMMIT: Solo si el mail salió bien ---
     db.commit()
-    
+
     return {
-        "success": True, 
+        "success": True,
         "message": "Expediente inaugurado. Revisa tu casilla de correo Oficial de Agente.",
         "db_session_id": session.id
     }
-

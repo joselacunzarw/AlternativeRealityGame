@@ -41,6 +41,16 @@ def _cleanup_checkpoints():
 
         db = SessionLocal()
         try:
+            # Emails con al menos una sesión activa — NO tocar sus checkpoints.
+            active_emails = {
+                email
+                for _, email in db.query(GameSession, User.email)
+                .join(User, GameSession.user_id == User.id)
+                .filter(GameSession.status == "active")
+                .all()
+            }
+
+            # Solo limpiar checkpoints de emails que NO tienen ninguna sesión activa.
             inactive = (
                 db.query(GameSession, User.email)
                 .join(User, GameSession.user_id == User.id)
@@ -51,9 +61,11 @@ def _cleanup_checkpoints():
             if not inactive:
                 return
 
+            # Filtrar emails que tienen sesión activa para no borrar su memoria.
             thread_ids_to_delete = [
                 f"thread_{email}_%"
                 for _, email in inactive
+                if email not in active_emails
             ]
 
             conn = sqlite3.connect(checkpoint_path)
